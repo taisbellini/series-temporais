@@ -62,7 +62,7 @@ Consider an autoregressive-distributed lag model described by the equation:
 y_t = c + \alpha_1y_{t-1} +  \cdots + \alpha_py_{t-p} + \theta_1\mathbf{x}_{t-1}^\intercal + \cdots + \theta_q\mathbf{x}_{t-q}^\intercal + \varepsilon_t 
 \label{eq:adl}
 \end{equation}
-
+<!--- um comment ?? --->
 where $t = 1, ..., n$, $y_t$ is the response variable, $y_{t-j}$ the lag of the response variable and $\mathbf{x}_{t-q}$ is the lagged covariates vector with dimension $d$. $\varepsilon_t$ is a white noise.
 
 As in @Koenker2006, we are interested in studying a class of quantile autoregressive models which coefficients can be dependent of $\tau$. Therefore, lets consider the following process, with ${U_t}$ as a sequence of i.i.d standard uniform random variables, $c$, $\alpha$ and $\theta$ as unknown functions $[0,1] \rightarrow \mathbb{R}$ to be estimated:
