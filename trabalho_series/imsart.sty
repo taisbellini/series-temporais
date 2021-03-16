@@ -239,7 +239,7 @@
 %
 \DeclareOption{aoas}{%
     \def\journal@id{-aoas}%
-    \def\journal@name{Submitted to the Annals of Applied Statistics }%
+    \def\journal@name{ }%
     \def\journal@url{https://imstat.org/journals-and-publications/annals-of-applied-statistics/}%
     \set@page@layout{405bp}{646bp}%
     \@twosidetrue
@@ -2257,9 +2257,9 @@
                 {section}%
                 {1}%
                 {\z@}%
-                {-\baselineskip}%
-                {.25\baselineskip}%
-                {\Large\sffamily\bfseries\mathversion{bold}\raggedright}%
+                {-3.5ex plus -1ex minus -.2ex}%
+                {2.3ex plus.2ex}%
+                {\centering\section*{}\Large\sffamily\bfseries\mathversion{bold}\raggedright}%
             }%
         \renewcommand\subsection{%
             \@startsection
@@ -3464,7 +3464,7 @@
         {\z@}%
         {-\bigskipamount}%
         {\medskipamount}%
-        {\raggedright\bfseries\mathversion{bold}}%
+        {\normalsize\centering\MakeTextUppercase}%
     }
 \renewcommand\subsection{%
     \@startsection
@@ -3473,7 +3473,7 @@
         {\z@}%
         {-\bigskipamount}%
         {\medskipamount}%
-        {\raggedright\bfseries\itshape\mathversion{bold}}%
+        {\centering\raggedright\bfseries\itshape\mathversion{bold}}%
     }
 \renewcommand\subsubsection{%
     \@startsection
