@@ -73,7 +73,7 @@ y_t = c(U_t) + \alpha_1(U_t)y_{t-1} +  \cdots + \alpha_p(U_t)y_{t-p} + \theta_1(
 \end{equation}
 
 
-Then, given that for any monotone increasing function $g$ and standard uniform random variable $U$ the following is true
+Then, given that for any monotone increasing function $g$ and standard uniform random variable $U$ the following is true:
 
 $$
 Q_{g(U)}(\tau) = g(Q_U(\tau)) = g(\tau)
