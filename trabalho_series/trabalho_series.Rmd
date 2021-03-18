@@ -46,8 +46,21 @@ output:
 
 # Introduction
 
+<!---
+Todos os comentários estão marcados com `??'
+?? Acredito que podes começar com uma visão puramente ``populacional'' de regressão quantílica, deixando a questão sobre estimação para um segundo momento... é uma questão de gosto: eu, em geral, prefiro ``desemaranhar'' esses dois aspectos metodológicos. Então eu começaria apresentando o modelo (possivelmente pela equação 1.3) citando Galvão et al. primeiro, que é uma generalização de Koenker and Xiao, que por sua vez são uma generalização para um cenário time series da regressão quantílica para dados ``cross section'' do Koenker and Bassett. É importante aqui:
+1. ressaltar a flexibilidade/parcimônia de um modelo do tipo 
+Q_{Y_t}(\tau | passado) = Z_{t-1}'\beta(\tau)
+(onde Z_{t-1} é um vetor cujas componentes são defasagens de Y e X) pois te permite capturar nuances na estrutura de dependência entre Z e Y
+2. chamar a atenção para o problema de ``quantile crossing'' ou, mais geralmente, para o requerimento implícito de que a equação acima seja uma função não-decrescente de \tau
+3. chamar a atenção para o fato de que a equação (1.3) especifica a dinâmica multivariada apenas parcialmente: por exemplo, se (X_t) é univariado, então (tomando p=q=1) tu obtens uma dinâmica bivariada $(Y_t,X_t)_{t\in\mathbb{Z}}$ em que a primeira componente ``se atualiza'' de acordo com a distribuição de probabilidades (condicional) correspondente à função quantílica
+Q_{Y_{t}}(\tau | passado) = c(\tau) + \alpha_1(\tau)Y_{t-1} + \beta_1(\tau)X_{t-1}
 
-Quantile regression, introduced in @Koenker1978, provides an estimation of the conditional distribution of the response variable $Y$ on the covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau$, thus, offering an approximation for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] In @Koenker2005, the Quantile Autoregressive Model (QAR) is introduced, where the $\tau$-th conditional quantile function of the response variable $y_t$ is expressed as a linear function of the lagged values of $y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models.
+Enfim, o modelo é flexível e parcimonioso, mas requer que certas restrições sejam impostas.
+
+Sobre notação: embora na lit. de time series haja um costume de se denotar as variáveis aleatórias por letras minúsculas, e embora eu ache essa notação mais bonita, esse é um daqueles casos em que o senso estético deve ser sacrificado para se atingir uma notação mais clara e rigorosa. Sugiro fortemente que tu utilizes letras maiúsculas para denotar todas as variáveis e vetores envolvidos: Y_t, X_t, etc. Se tu achares mais claro fazer a distinção, podes usar um \boldsymbol{X} para enfatizar que as covariáveis são vetores, mas isso não é estritamente necessário, desde que esteja explicitado no texto.
+--->
+Quantile regression, introduced in @Koenker1978, provides an estimation of the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering an approximation for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] In @Koenker2005, the Quantile Autoregressive Model (QAR) is introduced, where the $\tau$-th conditional quantile function of the response variable $y_t$ is expressed as a linear function of the lagged values of $y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models.
 
 In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we need will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or AdaLASSO, we might have different variables selected for each $\tau$. @Sottile2020 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. With this approach, it is possible to perform a global selection of variables for a given grid of quantiles. @Sottile2020 studies global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
 
@@ -57,36 +70,30 @@ In this work we propose a quantile regression of a time series model with i.i.d.
 ## Quantile Autoregressive Distributed Lag Model (QADL)
 
 Consider an autoregressive-distributed lag model described by the equation:
-
 \begin{equation}
 y_t = c + \alpha_1y_{t-1} +  \cdots + \alpha_py_{t-p} + \theta_1\mathbf{x}_{t-1}^\intercal + \cdots + \theta_q\mathbf{x}_{t-q}^\intercal + \varepsilon_t 
 \label{eq:adl}
 \end{equation}
-<!--- um comment ?? --->
 where $t = 1, ..., n$, $y_t$ is the response variable, $y_{t-j}$ the lag of the response variable and $\mathbf{x}_{t-q}$ is the lagged covariates vector with dimension $d$. $\varepsilon_t$ is a white noise.
 
 As in @Koenker2006, we are interested in studying a class of quantile autoregressive models which coefficients can be dependent of $\tau$. Therefore, lets consider the following process, with ${U_t}$ as a sequence of i.i.d standard uniform random variables, $c$, $\alpha$ and $\theta$ as unknown functions $[0,1] \rightarrow \mathbb{R}$ to be estimated:
-
 \begin{equation}
 y_t = c(U_t) + \alpha_1(U_t)y_{t-1} +  \cdots + \alpha_p(U_t)y_{t-p} + \theta_1(U_t)\mathbf{x}_{t-1}^\intercal + \cdots + \theta_q(U_t)\mathbf{x}_{t-q}^\intercal
 \label{eq:adltau}
 \end{equation}
-
 
 Then, given that for any monotone increasing function $g$ and standard uniform random variable $U$ the following is true:
 
 $$
 Q_{g(U)}(\tau) = g(Q_U(\tau)) = g(\tau)
 $$
-and assuming the right side of the equation \ref{eq:adltau} is monotone and increasing on $U_t$, we can say that the $\tau_{th}$ conditional quantile function of $y_t$ is:
 
+and assuming the right side of the equation \ref{eq:adltau} is monotone and increasing on $U_t$, we can say that the $\tau_{th}$ conditional quantile function of $y_t$ is:
 
 \begin{equation}
 Q_{y_t}(\tau|\Im_t) =  c(\tau) + \alpha_1(\tau)y_{t-1} + \cdots + \alpha_p(\tau)y_{t-p} + \theta_1(\tau)\mathbf{x}_{t-1}^\intercal + \cdots + \theta_q(\tau)\mathbf{x}_{t-q}^\intercal
 \label{eq:qadl}
 \end{equation}
-
-
 where $\Im_t$ is the $\sigma$-field generated by ${y_s, s\leq t}$. 
 
 
@@ -110,12 +117,10 @@ $$
 $$
 
 In a standard quantile regression (QR) method, we would estimate $\beta$ for each $\tau$ one at a time minimizing the expected value of the check function $\rho_\tau$:
-
 $$
 \hat{\beta(\tau)} = \arg\min_b \sum_{i=1}^n{\rho_\tau(y_i - \mathbf{z_i}^\intercal b)}
 $$
-
-where $\rho_\tau(v) = v(\tau - \mathbb{I}_{[v<0]})$. @Frumento2016 suggested a different approach: modeling the coefficient functions $\beta(\tau)$ as parametric functions of the order of the quantile. Consider $\varphi$ a vector of model parameters, then we can describe the quantile function as: 
+where $\rho_\tau(v) = v(\tau - \mathbb{I}_{[v<0]})$. @Frumento2016 suggested a different approach: modeling the coefficient functions $\beta(\tau)$ as parametric functions of the order of the quantile. Consider $\phi$ a vector of model parameters, then we can describe the quantile function as: 
 
 \begin{equation}
 Q(\tau|\mathbf{z},\varphi) = \mathbf{z}^\intercal\beta(\tau|\varphi)
@@ -129,7 +134,6 @@ To model $\beta(\tau|\varphi)$, a good practice is to use a flexible model, such
 $$
 \beta_j(\tau|\varphi) = \varphi_{j0} + \varphi_{j1}\tau + \cdots + \varphi_{jk}\tau^k
 $$
-
 where $j = 1, \dots,q$ and $q$ is the number of covariates of the model. $\varphi$ will have dimensions $q\times(k+1)$, so each covariate has $k+1$ associated parameters. 
 
 ## Estimation
@@ -154,7 +158,6 @@ Hence, we can rewrite equation \ref{eq:qrcm} as:
 Q(\tau|\mathbf{z},\varphi) = \mathbf{z}^\intercal\delta\varphi(\tau)
 \label{eq:qrcme}
 \end{equation}
-
 
 Since $\varphi(\tau)$ is known, our goal is to find $\delta$ that minimizes the loss function of the standard QR:
 
