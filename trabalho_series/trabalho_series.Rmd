@@ -118,12 +118,12 @@ $$
 
 In a standard quantile regression (QR) method, we would estimate the $D$-dimensional vector $\beta$ for each $\tau$ one at a time minimizing the expected value of the check function $\rho_\tau$:
 $$
-\hat{\beta(\tau)} = \arg\min_b \sum_{i=1}^n{\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b)}
+\hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^n{\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b)}
 $$
 where $\rho_\tau(v) = v(\tau - \mathbb{I}_{[v<0]})$. Thus, to find the $\beta(\tau)$ function that minimizes the loss function for all $\tau$, we have the following minimization problem:
 
 \begin{equation}
-\hat{\beta(\tau)} = \arg\min_b \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b) d\tau}
+\hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b) d\tau}
 \label{eq:betafunc}
 \end{equation}
 
@@ -168,7 +168,7 @@ Q(\tau|\mathbf{Z},\varphi) = \mathbf{Z}^\intercal\delta\varphi(\tau)
 Since $\varphi(\tau)$ is known, our goal is to find $\delta$ that minimizes the loss function of the standard QR, so \ref{eq:betafunc} can be rewritten as:
 
 $$
-\hat{\beta(\tau|\varphi)} = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau}
+\hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau}
 $$
 
 
@@ -178,7 +178,7 @@ Loss function with penalty. AdaLasso. @Konzen2016.
 
 # Methodology
 
-
+Consider the 
 
 (Simulation part of Sottile + modifications)
 
