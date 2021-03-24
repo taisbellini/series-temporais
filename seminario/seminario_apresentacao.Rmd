@@ -1,33 +1,60 @@
 ---
-subtitle: "Seminário - Séries Temporais - Verão 2021"
-title: "Neural Network Predictive Modeling on Dynamic Portfolio Management—A Simulation-Based Portfolio Optimization Approach - Yu, Jiayang and Chang, Kuo-Chu" 
+subtitle: "Yu, Jiayang and Chang, Kuo-Chu"
 author: "Gustavo Alovisi and Tais Bellini"
 date: "April, 2021"
-output: beamer_presentation
+output: 
+  beamer_presentation:
+    slide_level: 2
+    theme: "Boadilla"
+header-includes:
+  - \AtBeginDocument{\title[Seminário - Séries Temporais - Verão 2021]{Neural Network Predictive Modeling on Dynamic Portfolio Management}}
+bibliography: ref.bib
+
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-## Introduction
+# Introduction
+
+## Motivation
+
+- 
+
+## Proposal
 
 
-## Slide with Bullets
 
-- Bullet 1
-- Bullet 2
-- Bullet 3
+# Fundamentals
 
-## Slide with R Output
+## Pair copula GARCH
+
+## Neural Networks
+
+## Mean CVaR
+
+# Methodology
+
+## Neural Network
+
+- Feedforward
+- 1 hidden layer and 1 output layer
+
+Partition log-percentage change for each macroeconomic value and log return series of assets into a training set
+
+$$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_j}\right)$$
+![Sample of trained neural network. @Yu2020](img/neural_network.png)
+
 
 ```{r cars, echo = TRUE}
 summary(cars)
 ```
 
-## Slide with Plot
+# Results
 
 ```{r pressure}
 plot(pressure)
 ```
 
+## References {.allowframebreaks}
