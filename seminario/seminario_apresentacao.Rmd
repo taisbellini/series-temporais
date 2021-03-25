@@ -24,6 +24,9 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Proposal
 
+- Framework for portfolio optimization of six index funds
+
+![High level diagram of the proposal. (Authors)](img/ProposalSeminario.png){width=90%}
 
 
 # Fundamentals
@@ -34,27 +37,26 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Mean CVaR
 
-# Methodology
+# Economic Factor-Based Predictive Model (EFPM)
 
-## Neural Network
-
-- Feedforward
-- 1 hidden layer and 1 output layer
-
-Partition log-percentage change for each macroeconomic value and log return series of assets into a training set
-
-$$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_j}\right)$$
-![Sample of trained neural network. @Yu2020](img/neural_network.png)
+## Workflow 
+![Process workflow diagram. @Yu2020](img/workflow.png){width=80%}
 
 
-```{r cars, echo = TRUE}
-summary(cars)
-```
+## Neural Network {.allowframebreaks}
+
+- Explore the relationships between macroeconomic factors and financial assets returns
+- A feedforward neural network with one hidden layer and one output layer that takes the simulation of 11 major macroeconomic factors as input and produces the return of 6 vehicle investment assets
+- Process: find optimal weights $w_{k,output}$ and $w_{jk}$ that minimize the following error function:
+
+$$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_{k,output}\phi\left(\alpha_k+\sum_{j \rightarrow k}w_{jk}x_{ij}\right)}\right)$$
+$\alpha$ is a bias term and $\phi$ default to $\left(\frac{e^x}{1+e^x}\right)$
+
+- Gradient descent to iteractively update $w_{jk}$ 
+
+![Sample of trained neural network. @Yu2020](img/neural_network.png){width=80%}
+
 
 # Results
-
-```{r pressure}
-plot(pressure)
-```
 
 ## References {.allowframebreaks}
