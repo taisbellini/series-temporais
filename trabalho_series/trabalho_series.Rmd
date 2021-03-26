@@ -58,13 +58,14 @@ Q_{Y_{t}}(\tau | passado) = c(\tau) + \alpha_1(\tau)Y_{t-1} + \beta_1(\tau)X_{t-
 
 Enfim, o modelo é flexível e parcimonioso, mas requer que certas restrições sejam impostas.
 
-Sobre notação: embora na lit. de time series haja um costume de se denotar as variáveis aleatórias por letras minúsculas, e embora eu ache essa notação mais bonita, esse é um daqueles casos em que o senso estético deve ser sacrificado para se atingir uma notação mais clara e rigorosa. Sugiro fortemente que tu utilizes letras maiúsculas para denotar todas as variáveis e vetores envolvidos: Y_t, X_t, etc. Se tu achares mais claro fazer a distinção, podes usar um \boldsymbol{X} para enfatizar que as covariáveis são vetores, mas isso não é estritamente necessário, desde que esteja explicitado no texto.
 --->
-Quantile regression, introduced in @Koenker1978, provides an estimation of the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering an approximation for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] In @Koenker2005, the Quantile Autoregressive Model (QAR) is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models.
+Quantile regression, introduced in @Koenker1978, provides an estimation of the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering an approximation for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] (More on quantile regression)
 
-In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we need will have $m$ different estimations, where $m$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or AdaLASSO, we might have different variables selected for each $\tau$. @Sottile2020 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. With this approach, it is possible to perform a global selection of variables for a given grid of quantiles. @Sottile2020 studies global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
+In @Koenker2005, the Quantile Autoregressive Model (QAR) is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models. (Mention Galvao)
 
-In this work we propose a quantile regression of a time series model with i.i.d. errors applying the global coefficient estimation approach given in @Sottile2020. Furthermore, since we are in a time series context, the variable selection penalization can be better explored, for example, applying higher penalties to higher lags, as proposed in @Konzen2016. 
+In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we need will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or AdaLASSO, we might have different variables selected for each $\tau$. @Sottile2020 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. With this approach, it is possible to perform a global selection of variables for a given grid of quantiles. @Sottile2020 studies global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
+
+In this work we propose a quantile regression of a time series model with i.i.d. errors applying the global coefficient estimation approach given in @Sottile2020. Furthermore, since we are in a time series context, the variable selection penalization can be better explored, for example, applying higher penalties to higher lags, as proposed in @Konzen2016. The paper is organizes as follows: ...
 
 
 ## Quantile Autoregressive Distributed Lag Model (QADL)
@@ -87,14 +88,15 @@ Then, given that for any monotone increasing function $g$ and standard uniform r
 $$
 Q_{g(U)}(\tau) = g(Q_U(\tau)) = g(\tau)
 $$
-
 and assuming the right side of the equation \ref{eq:adltau} is monotone and increasing on $U_t$, we can say that the $\tau_{th}$ conditional quantile function of $Y_t$ is:
 
 \begin{equation}
 Q_{Y_t}(\tau|\Im_t) =  c(\tau) + \alpha_1(\tau)Y_{t-1} + \cdots + \alpha_p(\tau)Y_{t-p} + \theta_1(\tau)\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q(\tau)\mathbf{X}_{t-q}^\intercal
 \label{eq:qadl}
 \end{equation}
-where $\Im_t$ is the $\sigma$-field generated by ${Y_s, s\leq t}$. 
+where $\Im_t$ is the $\sigma$-field generated by ${Y_s, s\leq t}$. The formulation above implies that \ref{eq:qadl} must be a non-decreasing function of $\tau$.
+
+
 
 
 ## Global coefficient estimation and variable selection
