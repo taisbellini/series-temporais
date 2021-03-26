@@ -68,6 +68,9 @@ In quantile regression, we get the conditional quantile function for a determine
 
 In this work we propose a quantile regression of a time series model with i.i.d. errors applying the global coefficient estimation approach given in @Sottile2020. Furthermore, since we are in a time series context, the variable selection penalization can be better explored, for example, applying higher penalties to higher lags, as proposed in @Konzen2016. The paper is organizes as follows: ...
 
+# Fundamentals
+
+In this section, the fundamental concepts used in this work are presented. We start defining the Quantile Autoregressive Distributed Lag Model, describe the proposed estimator and express the variable selection method.
 
 ## Quantile Autoregressive Distributed Lag Model (QADL)
 
@@ -178,18 +181,26 @@ Since $\varphi(\tau)$ is known, our goal is to find $\delta$ that minimizes the 
 
 ## Variable selection
 
-For variable selection, equation \ref{eq:betafunc2} is modified to introduce a penalizing factor (@Sottile2020):
+To perform a LASSO variable selection, equation \ref{eq:betafunc2} is modified to introduce a $l^1$-norm penalizing factor (@Sottile2020):
 
 \begin{equation}
 \hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\sum_{h=1}^{L}|\delta_{jh}|
 \label{eq:betafuncpen}
 \end{equation}
+with $\lambda > 0$ as a tuning parameter. Thus, minimization is done subject to $\sum_{j=1}^{D}\sum_{h=1}^{L}|\delta_{jh}| \leq s$, where $s$ is a defined bound to the model parameters. 
+
+An alternative to overcome the inconsistencies that LASSO selection can present is the adaLASSO method proposed by @Zou2006, where different weights $\omega_j$ are applied to different coefficients. In this approach, variables with lower estimated coefficient, which indicate they are less relevant, will have a great weight $\omega_j$ resulting in a higher penalty. In this scenario, \ref{eq:betafuncpen} would have an extra parameter to represent the weight $\omega_j$:
+
+\begin{equation}
+\hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\sum_{h=1}^{L}\omega_j|\delta_{jh}|
+\label{eq:betafuncpenAda}
+\end{equation}
+
+In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea for proposing the WLadaLASSO, given by
 
 Loss function with penalty. AdaLasso. @Konzen2016.
 
 # Methodology
-
-Consider the 
 
 (Simulation part of Sottile + modifications)
 
