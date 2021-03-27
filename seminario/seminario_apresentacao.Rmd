@@ -18,9 +18,15 @@ knitr::opts_chunk$set(echo = FALSE)
 
 # Introduction
 
-## Motivation
 
 - 
+
+
+## Motivation
+
+- Use modern machine learning techniques to build on well established macroeconomics factors literature with respect to asset price prediction.
+
+- The main goal is to use macroeconomics factors to build an optimal asset portfolio of indexes that protects against extreme losses (left tail returns) while still offering adequate returns.
 
 ## Proposal
 
@@ -31,7 +37,49 @@ knitr::opts_chunk$set(echo = FALSE)
 
 # Fundamentals
 
-## Pair copula GARCH
+## GARCH
+
+- In order to model each univariate macroeconomic factor volatility, a GARCH(1,1) model is proposed. 
+
+- Volatility is modeled using a GARCH(1,1) because the majority of financial assets share common 'stylized facts':
+\item Heavy Tails: the distribution of returns usually shows heavier tails than Normal or t distribution: extreme losses or gains aren't that rare. 
+\item Gain/Loss Asymmetry: large downturn in assets prices do not necessarily reflect equally large upturns. 
+\item Volatility Clustering: high volatility events tends to cluster over time. Economic crisis. 
+- Thus, using simple asset's standard deviation as a risk measure can be problematic.
+
+## Pair Copula and Dependence Modeling
+
+- GARCH(1,1) model is able to capture univariate volatility. However, it is well known that dependence between financial assets exist.
+- During crisis, financial assets exhibits different dependence structures with respect to normal or bullish market conditions: they tend to have a very correlated loss dynamic. 
+- Copula-GARCH models are able to capture the multivariate assets dependence while multivariate probability function estimation is not needed. 
+
+## More about copula
+
+- The main advantage of using copulas is that it allows separating the marginal assets distribution (here modeled using GARCH) from the dependence structure. Then, different dependence behaviors can be captured by different copula functions. 
+
+\begin{theorem}
+Let $F$ be an n-dimensional distribution function with margins $F_1,...F_n$. Then there exists an n-copula $C$ such that for all $y \in R^n$, \begin{equation}
+F(y_1,...,y_n) = C(F_1(y_1),...,F_n(y_n)).
+\end{equation} Furthermore, if $F_1,...F_n$ are continuous, then $C$ is unique.
+\end{theorem}
+
+## More about copula
+\begin{corollary}
+Let $f$ be the multivariate probability density function the probability distribution $F$ and $f_1,...,f_n$ the univariate probability density functions of the margins $F_1,...,F_n$. The copulas density function of an n-copula $C$ is the function c: $U[0,1]^n \mapsto [0,\infty)$ such that \begin{equation}
+      c(u_1,...,u_n)= \frac{\partial^n C(u_1,...,u_n)}{\partial u_1,...,\partial u_n} =                \frac{f(y_1,...,y_n)}{\prod^{n}_{i=1}f_i(y_i)}.
+\end{equation}
+\end{corollary}
+
+## How this all connects
+
+Using theorems above, the conditional joint distribution can be decomposed, given previous information set, into conditional marginal distributions and conditional copulas. For $t \in (1,...,T)$ let $Y_t|I_{t-1} \sim F(.|I_{t-1})$ and $Y_{i,t}|I_{t-1} \sim F_i(.|I_{t-1})$, then \begin{equation}
+F(y|I_{t-1}) = C(F_1(y_1|I_{t-1}),..., F_n(y_n|I_{t-1})|I_{t-1})
+\end{equation}
+
+Then, from the GARCH(1,1) model, we incorporate equation (VER) to the multivariate copula and the white-noise term ${z_t}$ can be derived from the copula structure: \begin{equation}
+z_t|I_{t-1} \sim F_{z,t} = C_t(F_{1,t}, ... , F_{n,t}) \end{equation} where $z_t$ can then be estimated from \begin{equation}
+\frac{R_t - \mu}{\sigma_t|I_{t-1}} \end{equation}
+
 
 ## Neural Networks
 
