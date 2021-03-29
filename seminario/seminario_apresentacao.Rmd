@@ -1,4 +1,5 @@
 ---
+title: "Neural Network Predictive Modeling on Dynamic Portfolio Management"
 subtitle: "Yu, Jiayang and Chang, Kuo-Chu"
 author: "Gustavo Alovisi and Tais Bellini"
 date: "April, 2021"
@@ -18,10 +19,6 @@ knitr::opts_chunk$set(echo = FALSE)
 
 # Introduction
 
-
-- 
-
-
 ## Motivation
 
 - Use modern machine learning techniques to build on well established macroeconomics factors literature with respect to asset price prediction.
@@ -30,7 +27,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Proposal
 
-- Framework for portfolio optimization of six index funds
+- Framework for portfolio optimization:
 
 ![High level diagram of the proposal. (Authors)](img/ProposalSeminario.png){width=90%}
 
@@ -42,9 +39,9 @@ knitr::opts_chunk$set(echo = FALSE)
 - In order to model each univariate macroeconomic factor volatility, a GARCH(1,1) model is proposed. 
 
 - Volatility is modeled using a GARCH(1,1) because the majority of financial assets share common 'stylized facts':
-\item Heavy Tails: the distribution of returns usually shows heavier tails than Normal or t distribution: extreme losses or gains aren't that rare. 
-\item Gain/Loss Asymmetry: large downturn in assets prices do not necessarily reflect equally large upturns. 
-\item Volatility Clustering: high volatility events tends to cluster over time. Economic crisis. 
+  - Heavy Tails: the distribution of returns usually shows heavier tails than Normal or t distribution: extreme losses or gains aren't that rare. 
+  - Gain/Loss Asymmetry: large downturn in assets prices do not necessarily reflect equally large upturns. 
+  - Volatility Clustering: high volatility events tends to cluster over time. Economic crisis. 
 - Thus, using simple asset's standard deviation as a risk measure can be problematic.
 
 ## Pair Copula and Dependence Modeling
@@ -91,6 +88,13 @@ z_t|I_{t-1} \sim F_{z,t} = C_t(F_{1,t}, ... , F_{n,t}) \end{equation} where $z_t
 
 ## Neural Networks
 
+- The advantage of using deep neural networks for financial forecasting, as opposed to linear models such as ARIMA, is that they can approximate the relationship between input data and predicted outputs, even in highly complex and correlated scenarios. 
+
+- (Explanation of feedforward neural network with 3 layers)
+
+- Most of the studies with neural network use the historical data of the financial assets to explore the hidden relationship between them.
+- This proposal uses the  
+
 ## Mean CVaR
 
 - Traditional portfolio optimization follows Markowitz mean-variance model. 
@@ -111,25 +115,32 @@ S_k \ge 0
 w^Ty \ge \mu_0
 \end{equation} where $S_k$ is an auxiliary term to approximate $[f(w,y_k)-l]^+$ so that the optimization can be solved as a Linear Programming problem (Simplex or Interior Point).
 
-# Economic Factor-Based Predictive Model (EFPM)
+# Methodology
 
-## Workflow 
+## Neural Net-Based Pair Copula GARCH Portfolio Optimization Framework
+
 ![Process workflow diagram. @Yu2020](img/workflow.png){width=80%}
 
+## Economic Factor-Based Predictive Model (EFPM) {.allowframebreaks}
 
-## Neural Network {.allowframebreaks}
-
-- Explore the relationships between macroeconomic factors and financial assets returns
-- A feedforward neural network with one hidden layer and one output layer that takes the simulation of 11 major macroeconomic factors as input and produces the return of 6 vehicle investment assets
+- Explore the relationships between macroeconomic factors and financial assets returns.
+- A feedforward neural network with one hidden layer and one output layer that takes the simulation of 11 major macroeconomic factors as input and produces the return of 6 vehicle investment assets.
 - Process: find optimal weights $w_{k,output}$ and $w_{jk}$ that minimize the following error function:
 
 $$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_{k,output}\phi\left(\alpha_k+\sum_{j \rightarrow k}w_{jk}x_{ij}\right)}\right)$$
 $\alpha$ is a bias term and $\phi$ default to $\left(\frac{e^x}{1+e^x}\right)$
-
-- Gradient descent to iteractively update $w_{jk}$ 
+- Learning process: Gradient descent to iteractively update $w_{jk}$ 
 
 ![Sample of trained neural network. @Yu2020](img/neural_network.png){width=80%}
 
+## Data Collection
+
+- Table of investment funds
+- table of macroeconomic factors
+
+## Training and testing
+
+- Benchamarking
 
 # Results
 
