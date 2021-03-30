@@ -132,10 +132,24 @@ w^Ty \ge \mu_0
 
 ![Process workflow diagram. @Yu2020](img/workflow.png){width=70%}
 
-## Data Collection
+## Data Collection {.allowframebreaks}
 
-- Table of investment funds
-- table of macroeconomic factors
+- six Vanguard index mutual funds
+
+Table: Investment Instruments. @Yu2020
+
+  Security Name                         Security Symbol
+-----------------                   ----------------------
+ Vanguard 500 Index                          VFINX
+ Vanguard Small Cap Index                    NAESX
+ Vanguard Total Intl Stock Index             VGTSX
+ Vanguard Emerging Mkts Stock Index          VEIEX
+ Vanguard Total Bond Market Index            VBMFX
+ Vanguard Real Estate Index                  VGSLX
+
+- 11 macroeconomic factors
+
+![Table of macroeconomic factors. @Yu2020](img/macroeconomic_variables.png){width=90%}
 
 ## Training and testing
 
