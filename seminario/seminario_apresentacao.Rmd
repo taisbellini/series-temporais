@@ -90,10 +90,21 @@ z_t|I_{t-1} \sim F_{z,t} = C_t(F_{1,t}, ... , F_{n,t}) \end{equation} where $z_t
 
 - The advantage of using deep neural networks for financial forecasting, as opposed to linear models such as ARIMA, is that they can approximate the relationship between input data and predicted outputs, even in highly complex and correlated scenarios. 
 
-- (Explanation of feedforward neural network with 3 layers)
-
 - Most of the studies with neural network use the historical data of the financial assets to explore the hidden relationship between them.
-- This proposal uses the  
+
+## The Economic Factor-Based Predictive Model (EFPM) {.allowframebreaks}
+
+- This proposal uses neural networks to explore the relationships between macroeconomic factors and financial assets returns.
+
+- A feedforward neural network with one hidden layer and one output layer that takes the simulation of 11 major macroeconomic factors as input and produces the return of 6 vehicle investment assets.
+ 
+- The network maps the input to the output using the function below, where $\phi$ is the sigmoid function $\left(\frac{e^x}{1+e^x}\right)$ and $\alpha$ is a bias term:
+
+$$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_{k,output}\phi\left(\alpha_k+\sum_{j \rightarrow k}w_{jk}x_{ij}\right)}\right)$$
+
+- Find the optimal weights $w_{k,output}$ and $w_{jk}$ minimizing the SSE using gradient descent to iteractively update $w_{jk} \rightarrow w_{jk} - \eta\frac{\partial SSE}{\partial w_{jk}}$ where $\eta$ is the learning rate that controls the size of the step. 
+
+![Sample of trained neural network. @Yu2020](img/neural_network.png){width=80%}
 
 ## Mean CVaR
 
@@ -103,7 +114,7 @@ z_t|I_{t-1} \sim F_{z,t} = C_t(F_{1,t}, ... , F_{n,t}) \end{equation} where $z_t
 - CVaR (Conditional Value at Risk): CVaR is defined as \begin{equation} CVaR_\beta(w) = \frac{1}{1-\beta}\int_{f(w,y)\ge VaR_{\beta(w)}}f(w,y)p(y)dy, \end{equation} where $y$ represents returns with density $p(y)$ and $f(w,y)$ is a loss function. It can be interpreted as the mean loss from VaR to $-\infty$. 
 - CVaR is a coherent risk measure and the optimization w.r.t to a portfolio is well defined and easier to be done. 
 
-## mean-CVaR portfolio optimization
+## Mean-CVaR portfolio optimization
 
 - An easier discretized version function can be used to calculate $CVaR_\beta$ approximating the integral above: \begin{equation}
 F_\beta(w,l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}[f(w, y_k)-l]^{+}.\end{equation} Minimizing CVaR is thus the equivalent of minimizing $F_\beta(w,l)$. The final mean-CVaR portfolio optimization is then defined as: 
@@ -119,19 +130,7 @@ w^Ty \ge \mu_0
 
 ## Neural Net-Based Pair Copula GARCH Portfolio Optimization Framework
 
-![Process workflow diagram. @Yu2020](img/workflow.png){width=80%}
-
-## Economic Factor-Based Predictive Model (EFPM) {.allowframebreaks}
-
-- Explore the relationships between macroeconomic factors and financial assets returns.
-- A feedforward neural network with one hidden layer and one output layer that takes the simulation of 11 major macroeconomic factors as input and produces the return of 6 vehicle investment assets.
-- Process: find optimal weights $w_{k,output}$ and $w_{jk}$ that minimize the following error function:
-
-$$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_{k,output}\phi\left(\alpha_k+\sum_{j \rightarrow k}w_{jk}x_{ij}\right)}\right)$$
-$\alpha$ is a bias term and $\phi$ default to $\left(\frac{e^x}{1+e^x}\right)$
-- Learning process: Gradient descent to iteractively update $w_{jk}$ 
-
-![Sample of trained neural network. @Yu2020](img/neural_network.png){width=80%}
+![Process workflow diagram. @Yu2020](img/workflow.png){width=70%}
 
 ## Data Collection
 
