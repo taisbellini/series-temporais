@@ -176,10 +176,28 @@ Table: Investment Instruments. @Yu2020
 ## Benchmarking
 
 - The proposed strategy is compared to 3 methods:
-   - Equally weighted (EW): index funds in the portfolio are simply allocated equally and rebalanced to equal weights each month.
-   - Historical return-based (HRB): historical returns of the index funds are computed directly as inputs to the Mean-CVaR framework (no simulation).
-   - Direct simulation (DS): monthly returns of the index funds are simulated by applying historical data into the pair copula-GARCH framework without utilizing the neural network framework and information from economic variables.
+   - \textbf{Equally weighted (EW):} index funds in the portfolio are simply allocated equally and rebalanced to equal weights each month.
+   - \textbf{Historical return-based (HRB):} historical returns of the index funds are computed directly as inputs to the Mean-CVaR framework (no simulation).
+   - \textbf{Direct simulation (DS):} monthly returns of the index funds are simulated by applying historical data into the pair copula-GARCH framework without utilizing the neural network framework and information from economic variables.
 
 # Results
+
+## Performance comparison
+
+- Proposed framework using the neural network and considering macroeconomic factors outperforms all benchmark methods.
+
+![Performance comparison assuming $1000 initial investment.@Yu2020](img/result_comparison.png){width=60%}
+
+## Detailed performance comparison
+
+Table: Summary of performance in the 4 strategies. @Yu2020
+
+  Summary Statistics             EFPM         HRB          DS          EW
+----------------------       ----------     --------    ---------    --------
+ Annualized Return             7.4%           4.1%         3.4%        3.9%
+ Annualized Volatility         8.6%           8.3%         7.2%        13.8%
+ Sharpe Ratio                  0.57           0.20         0.13        0.10
+ Maximum Drawdown              -16.4%       -34.8%       -23.2%       -51.5%
+ Monthly 99% CVaR              -9.3%        -13.5%       -13.0%       -15.6%
 
 ## References {.allowframebreaks}
