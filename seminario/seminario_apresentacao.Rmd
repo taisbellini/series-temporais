@@ -34,7 +34,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 # Fundamentals
 
-## GARCH
+## GARCH(1,1) model 
 
 - In order to model each univariate macroeconomic factor volatility, a GARCH(1,1) model is proposed. 
 
@@ -44,11 +44,23 @@ knitr::opts_chunk$set(echo = FALSE)
   - Volatility Clustering: high volatility events tends to cluster over time. Economic crisis. 
 - Thus, using simple asset's standard deviation as a risk measure can be problematic.
 
+## GARCH(1,1) model (2)
+
+Let $R_t$ be the return of an macroeconomic factor at time $t$. It can be modelled as $R_t = \mu + \epsilon_t$, where $\mu$ is the average of the returns. 
+A GARCH(1,1) model can be described as: 
+\begin{equation}
+\begin{aligned}
+\epsilon_t = \sigma_tz_t \\
+\sigma_{t}^{2} = \omega  + \alpha_{1}\epsilon_{t-1}^{2} + \beta_{1}\sigma_{t-1}^{2}
+\end{aligned}
+\end{equation}
+
+
 ## Pair Copula and Dependence Modeling
 
 - GARCH(1,1) model is able to capture univariate volatility. However, it is well known that dependence between financial assets exist.
 - During crisis, financial assets exhibits different dependence structures with respect to normal or bullish market conditions: they tend to have a very correlated loss dynamic. 
-- Copula-GARCH models are able to capture the multivariate assets dependence while multivariate probability function estimation is not needed. 
+- Copula-GARCH models are able to capture the multivariate assets dependence while multivariate probability function estimation is not needed or desired. 
 
 ## More about copula
 
@@ -84,7 +96,11 @@ z_t|I_{t-1} \sim F_{z,t} = C_t(F_{1,t}, ... , F_{n,t}) \end{equation} where $z_t
 - Computation requirements to estimate multivariate copula parameters increases with dimension of time-series. 
 - However, multivariate joint density can be written as a product of pair copula on different conditional distributions.
 - Copula parameters are then estimated with log-likelihood optimization along de layers of pair copula trees. 
-- Final model is the one that optimizes AIC. 
+- Final PCC model is the one that optimizes AIC. 
+
+## Algorithm for the simulation of macroeconomic time series 
+
+- 1: Fit the error term of monthly log-percentage change minus it's average for each macroeconomic variable into the GARCH(1,1) process 
 
 ## Neural Networks
 
@@ -99,6 +115,7 @@ z_t|I_{t-1} \sim F_{z,t} = C_t(F_{1,t}, ... , F_{n,t}) \end{equation} where $z_t
 - A feedforward neural network with one hidden layer and one output layer that takes the simulation of 11 major macroeconomic factors as input and produces the return of 6 vehicle investment assets.
  
 - The network maps the input to the output using the function below, where $\phi$ is the sigmoid function $\left(\frac{e^x}{1+e^x}\right)$ and $\alpha$ is a bias term:
+
 
 $$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_{k,output}\phi\left(\alpha_k+\sum_{j \rightarrow k}w_{jk}x_{ij}\right)}\right)$$
 
@@ -116,15 +133,21 @@ $$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_{k,out
 
 ## Mean-CVaR portfolio optimization
 
-- An easier discretized version function can be used to calculate $CVaR_\beta$ approximating the integral above: \begin{equation}
-F_\beta(w,l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}[f(w, y_k)-l]^{+}.\end{equation} Minimizing CVaR is thus the equivalent of minimizing $F_\beta(w,l)$. The final mean-CVaR portfolio optimization is then defined as: 
+- An easier discretized version function can be used to calculate $CVaR_\beta$ approximating the integral above:
 \begin{equation}
-min_{w \in W} F_\beta(w,l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}S_k 
-s.t. S_k \ge f(w, y_k) - l = -w^Ty_k - l 
-S_k \ge 0
-\sum^{N}_{i=1}w_i = 1
-w^Ty \ge \mu_0
-\end{equation} where $S_k$ is an auxiliary term to approximate $[f(w,y_k)-l]^+$ so that the optimization can be solved as a Linear Programming problem (Simplex or Interior Point).
+F_\beta(w,l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}[f(w, y_k)-l]^{+}.\end{equation} Minimizing CVaR is thus the equivalent of minimizing $F_\beta(w,l)$. 
+
+## Optmization Problem
+The final mean-CVaR portfolio optimization is then defined as: 
+\begin{equation}
+\begin{aligned}
+\min_{w \in W} F_\beta(w,l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}S_k \\
+s.t. S_k \ge f(w, y_k) - l = -w^Ty_k - l \\
+S_k \ge 0\\
+\sum^{N}_{i=1}w_i = 1\\
+w^Ty \ge \mu_0\\
+\end{aligned}
+\end{equation} where $S_k$ is an auxiliary term to approximate $[f(w,y_k)-l]^+$ so that the optimization can be solved as a Linear Programming problem (using Simplex or Interior Point).
 
 # Methodology
 
