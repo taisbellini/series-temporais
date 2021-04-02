@@ -76,27 +76,27 @@ A GARCH(1,1) model can be described as:
 - The main advantage of using copulas is that it allows separating the marginal assets distribution (here modeled using GARCH) from the dependence structure. Then, different dependence behaviors can be captured by different copula functions. 
 
 \begin{theorem}
-Let $F$ be an n-dimensional distribution function with margins $F_1,...F_n$. Then there exists an n-copula $C$ such that for all $y \in R^n$, \begin{equation}
-F(y_1,...,y_n) = C(F_1(y_1),...,F_n(y_n)).
-\end{equation} Furthermore, if $F_1,...F_n$ are continuous, then $C$ is unique.
+Let $F$ be an n-dimensional joint distribution function with margins $F_1,...F_n$. Then there exists an n-copula $C$ such that for all $y \in R^n$, \begin{equation}
+F(\boldsymbol{y}) = F(y_1,...,y_n) = C(F_1(y_1),...,F_n(y_n)).
+\end{equation} Furthermore, if $F_1,...,F_n$ are continuous, then $C$ is unique.
 \end{theorem}
 
 ## More about copula
 \begin{corollary}
-Let $f$ be the multivariate probability density function the probability distribution $F$ and $f_1,...,f_n$ the univariate probability density functions of the margins $F_1,...,F_n$. The copulas density function of an n-copula $C$ is the function c: $U[0,1]^n \mapsto [0,\infty)$ such that \begin{equation}
+Let $f$ be the multivariate probability density function, the probability distribution $F$, and $f_1,...,f_n$ the univariate probability density functions of the margins $F_1,...,F_n$. The copula density function of an n-copula $C$ is the function c: $U[0,1]^n \mapsto [0,\infty)$ such that \begin{equation}
       c(u_1,...,u_n)= \frac{\partial^n C(u_1,...,u_n)}{\partial u_1,...,\partial u_n} =                \frac{f(y_1,...,y_n)}{\prod^{n}_{i=1}f_i(y_i)}.
 \end{equation}
 \end{corollary}
 
 ## How this all connects
 
-Using theorems above, the conditional joint distribution can be decomposed, given previous information set, into conditional marginal distributions and conditional copulas. For $t \in (1,...,T)$ let $Y_t|I_{t-1} \sim F(.|I_{t-1})$ and $Y_{i,t}|I_{t-1} \sim F_i(.|I_{t-1})$, then \begin{equation}
-F(y|I_{t-1}) = C(F_1(y_1|I_{t-1}),..., F_n(y_n|I_{t-1})|I_{t-1})
+Using theorems above, the conditional joint distribution can be decomposed, given previous information set, into conditional marginal distributions and conditional copulas. For $t \in (1,...,T)$ let $\boldsymbol{Y}_t|\boldsymbol{I}_{t-1} \sim F(.|\boldsymbol{I}_{t-1})$ and $Y_{i,t}|\boldsymbol{I}_{t-1} \sim F_i(.|\boldsymbol{I}_{t-1})$, then \begin{equation}
+F(\boldsymbol{y}|\boldsymbol{I}_{t-1}) = C(F_1(y_1|\boldsymbol{I}_{t-1}),..., F_n(y_n|\boldsymbol{I}_{t-1})|\boldsymbol{I}_{t-1})
 \end{equation}
 
 We incorporate GARCH(1,1) equation to the multivariate copula and the white-noise term ${z_t}$ can be derived from the copula structure: \begin{equation}
-z_t|I_{t-1} \sim F_{z,t} = C_t(F_{1,t}, ... , F_{n,t}) \end{equation} where $z_t$ can then be estimated from \begin{equation}
-\frac{R_t - \mu}{\sigma_t|I_{t-1}} \end{equation}
+z_t|\boldsymbol{I}_{t-1} \sim F_{z,t} = C_t(F_{1,t}, ... , F_{n,t}) \end{equation} where $z_t$ can then be estimated from \begin{equation}
+\frac{R_t - \mu}{\sigma_t|\boldsymbol{I}_{t-1}} \end{equation}
 
 ## Pair Copula (PCC)
 
@@ -158,27 +158,29 @@ $$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_{k,out
 
 - Traditional portfolio optimization follows Markowitz mean-variance model. 
 - As mentioned earlier, there's a need to model lower tail risk. New risk measures introduced. 
-- VaR (Value at Risk): VaR is defined as $VaR_{\beta}(w) = min(l \in R: \psi(w,l) \ge \beta)$. It can be interpreted as the loss with $\beta$ confidence. However, VaR has some limitations (not coherent, numerical difficulties, not convex). 
-- CVaR (Conditional Value at Risk): CVaR is defined as \begin{equation} CVaR_\beta(w) = \frac{1}{1-\beta}\int_{f(w,y)\ge VaR_{\beta(w)}}f(w,y)p(y)dy, \end{equation} where $y$ represents returns with density $p(y)$ and $f(w,y)$ is a loss function. It can be interpreted as the mean loss from $VaR_\beta$ to $-\infty$. 
+- VaR (Value at Risk): Let $\boldsymbol{w}$ be a vector of portfolio weights. VaR is defined as $VaR_{\beta}(\boldsymbol{w}) = min(l \in R: \psi(\boldsymbol{w},l) \ge \beta)$. It can be interpreted as the portfolio loss with $\beta$ confidence. However, VaR has some limitations (not coherent, numerical difficulties, not convex). 
+- CVaR (Conditional Value at Risk): CVaR is defined as \begin{equation} CVaR_\beta(w) = \frac{1}{1-\beta}\int_{f(w,y)\ge VaR_{\beta(w)}}f(w,y)p(y)dy, \end{equation} where $\boldsymbol{y}$ represents returns with density $p(\boldsymbol{y})$ and $f(\boldsymbol{w},\boldsymbol{y})$ is a loss function defined as $f(\boldsymbol{w},\boldsymbol{y}) = -\boldsymbol{w}^T\boldsymbol{y}$. It can be interpreted as the mean loss from $VaR_\beta$ to $-\infty$. 
 - CVaR is a coherent risk measure and the optimization w.r.t to a portfolio is well defined and easier to be done. 
 
 ## Mean-CVaR portfolio optimization
 
 - An easier discretized version function can be used to calculate $CVaR_\beta$ approximating the integral above:
 \begin{equation}
-F_\beta(w,l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}[f(w, y_k)-l]^{+}.\end{equation} Minimizing CVaR is thus the equivalent of minimizing $F_\beta(w,l)$. 
+F_\beta(\boldsymbol{w},l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}[f(\boldsymbol{w}, \boldsymbol{y}_k)-l]^{+}.\end{equation} Minimizing CVaR is thus the equivalent of minimizing $F_\beta(\boldsymbol{w},l)$. 
 
-## Optimization Problem
+## Optimization Problem I
 The final mean-CVaR portfolio optimization is then defined as: 
 \begin{equation}
 \begin{aligned}
-\min_{w \in W} F_\beta(w,l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}S_k \\
-s.t. S_k \ge f(w, y_k) - l = -w^Ty_k - l \\
+\min_{\boldsymbol{w} \in \boldsymbol{W}} F_\beta(\boldsymbol{w},l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}S_k \\
+s.t. S_k \ge f(\boldsymbol{w}, \boldsymbol{y}_k) - l = -\boldsymbol{w}^T\boldsymbol{y}_k - l \\
 S_k \ge 0\\
 \sum^{N}_{i=1}w_i = 1\\
-w^Ty \ge \mu_0\\
+\boldsymbol{w}^T\boldsymbol{y} \ge \mu_0\\
 \end{aligned}
-\end{equation} where $S_k$ is an auxiliary term to approximate $[f(w,y_k)-l]^+$ so that the optimization can be solved as a Linear Programming problem (using Simplex or Interior Point). 
+\end{equation} where $S_k$ is an auxiliary term to approximate $[f(\boldsymbol{w},\boldsymbol{y}_k)-l]^+$ so that the optimization can be solved as a Linear Programming problem (using Simplex or Interior Point). 
+
+## Optimization Problem II
 
 - The simulated macroeconomic factors are fed to Neural Network in order to produce simulated asset returns. 
 - As the simulation stems from copula-GARCH(1,1) model, the resulting simulated asset returns inherit the model's characteristics of time-varying volatility, dependence structure and constant mean of the series.
