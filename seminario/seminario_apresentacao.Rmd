@@ -213,7 +213,7 @@ Table: Investment Instruments. @Yu2020
 
 ## Simulation 
 
-- Simulate 5000 log-percentage change of economic variables for 60-months using the the pair copula-GARCH(1,1) model.
+- Simulate 5000 log-percentage change of economic variables using the the pair copula-GARCH(1,1) model.
 - Use the 5000 simulated log-percentage change of the variables as input for the neural network model and get the 5000 simulated log-percentage returns of investment assets.
 - Use the simulated return series of past 60 months as input for the Mean-CVaR optimization and get the optimal weights of the portfolio for the next month.
    - confidence level ($\beta$): 99%
@@ -222,7 +222,7 @@ Table: Investment Instruments. @Yu2020
 ## Validation
 
 - Portfolio performance for the one-month period is recorded, and the process is repeated the next month using the previous 60 months data again.
-- Range from February 2007 to November 2009.
+- Range from February 2007 to November 2019.
 - $1000 invested at the end of January 2007.
 
 ## Benchmarking
