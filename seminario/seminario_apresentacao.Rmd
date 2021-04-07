@@ -135,7 +135,7 @@ for $t = 1, 2, ... T$:
 
 ## Neural Networks
 
-- The advantage of using deep neural networks for financial forecasting, as opposed to linear models such as ARIMA, is that they can approximate the relationship between input data and predicted outputs, even in highly complex and correlated scenarios. 
+- The advantage of using deep neural networks for financial forecasting, as opposed to linear models such as ARIMA, is that they can approximate the relationship between input data and predicted outputs even in highly complex and correlated scenarios. 
 
 - Most of the studies with neural network use the historical data of the financial assets to explore the hidden relationship between them.
 
