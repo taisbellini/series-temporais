@@ -209,7 +209,7 @@ Table: Investment Instruments. @Yu2020
 - Training period of 60-month interval to get the optimal weight and test out-of-sample data for the following month. Training and testing repeated starting on January 2002 until all data points in sample are evaluated.
 - Min–max normalization method on both the monthly log returns of the index funds and the monthly log-percentage change of the macroeconomic variables in training and testing phases to accelerate gradient descent algorithm.
 - 60-month training data set split into one training set of 54 data points to form the model, and the remaining 6-month data that is used to tune the hyperparameter, such as number of neurons in the hidden layer. Mean squared error (MSE) of predicted output minimized to select the best network structure.
-- PCC-GARCH fitted using data from January 2002 to February 2009. 
+- PCC-GARCH fitted using data from January 2002 to January 2007. 
 
 ## Simulation 
 
