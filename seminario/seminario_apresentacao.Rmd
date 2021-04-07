@@ -168,7 +168,7 @@ $$\hat{y_i} = \phi_{output}\left(\alpha_1 + \sum_{k \rightarrow output}{w_{k,out
 \begin{equation}
 F_\beta(\boldsymbol{w},l) = l + \frac{1}{q(1+\beta)}\sum^{q}_{k = 1}[f(\boldsymbol{w}, \boldsymbol{y}_k)-l]^{+}.\end{equation} Minimizing CVaR is thus the equivalent of minimizing $F_\beta(\boldsymbol{w},l)$. 
 
-## Optimization Problem I
+## Optimization Problem
 The final mean-CVaR portfolio optimization is then defined as: 
 \begin{equation}
 \begin{aligned}
@@ -179,13 +179,6 @@ S_k \ge 0\\
 \boldsymbol{w}^T\boldsymbol{y} \ge \mu_0\\
 \end{aligned}
 \end{equation} where $S_k$ is an auxiliary term to approximate $[f(\boldsymbol{w},\boldsymbol{y}_k)-l]^+$ so that the optimization can be solved as a Linear Programming problem (using Simplex or Interior Point). 
-
-## Optimization Problem II
-
-- The simulated macroeconomic factors are fed to Neural Network in order to produce simulated asset returns. 
-- As the simulation stems from copula-GARCH(1,1) model, the resulting simulated asset returns inherit the model's characteristics of time-varying volatility, dependence structure and constant mean of the series.
-- These returns are used in the portfolio optimization problem to produce optimal weights for the next allocation period based on minimization of $CVaR_\beta$. 
- 
 
 # Methodology
 
@@ -224,9 +217,9 @@ Table: Investment Instruments. @Yu2020
 - Simulate 5000 log-percentage change of economic variables using the the pair copula-GARCH(1,1) model.
 - Use the 5000 simulated log-percentage change of the variables as input for the neural network model and get the 5000 simulated log-percentage returns of investment assets.
 - 154 months of sample returns.
-- Use the simulated return series of past 60 months as input for the Mean-CVar optimization and get the optimal weights of the portfolio for the next month.
+- Use the simulated return series of past 60 months as input for the Mean-CVaR optimization and get the optimal weights of the portfolio for the next month.
    - confidence level ($\beta$): 99%
-   - expected return parameter ($\mu_0$): minimum of 10% of annualized return and average return of past 60 months of assets
+   - expected return parameter ($\mu_0$): minimum of: 10% of annualized return and average return of past 60 months of assets.
    
 ## Validation
 
