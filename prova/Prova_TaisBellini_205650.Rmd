@@ -13,7 +13,7 @@ header-includes:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Qestão 1: Derivar as funções de autocorrelação:
+# Questão 1: Derivar as funções de autocorrelação:
 
 ## a) De $Y_t$ que é um ARMA(1,1) estacionário.
 
