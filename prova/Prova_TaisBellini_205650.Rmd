@@ -123,6 +123,10 @@ $$
 $$
 Portanto, para $h \leq 1$,
 $$
+\rho_Y(0) = 1
+$$
+
+$$
 \rho_Y(1) = \frac{\gamma_Y(1)}{\gamma_Y(0)} = \frac{(1+\phi_1\theta_1)(\phi_1+\theta_1)}{2\phi_1\theta_1 + 1 + \theta_1^2} 
 $$
 e para $h > 1$:
