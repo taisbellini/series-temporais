@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## a) De $Y_t$ que é um ARMA(1,1) estacionário.
 
-Seja $\{ X_t \}_{t \in Z}$, um processo estocástico ARMA(1,1) estacionário, podemos representá-lo da seguinte forma:
+Seja $\{ X_t \}_{t \in Z}$ um processo estocástico ARMA(1,1) estacionário, podemos representá-lo da seguinte forma:
 
 $$
 Y_t = \phi_1 Y_{t-1} + \epsilon_t + \theta_1 \epsilon_{t-1}
@@ -48,7 +48,7 @@ $$
 \gamma_Y(h) = \phi_1 \gamma_Y(h-1) + Cov(\epsilon_{t+h}, Y_t) + \theta_1 Cov(\epsilon_{t+h-1}, Y_t)
 $$
 
-Observe que, para $h > 1$, teremos os termos de covarância $Cov(\epsilon_{t+h}, Y_t)$ e $\theta_1 Cov(\epsilon_{t+h-1})$ zerados, pois o ruído branco do futuro não interfere em $Y_t$. Assim, neste caso, as funções de autocovariância e autocorrelacão de $Y_t$ que é um ARMA(1,1) estacionário se comportam como as de um AR(1): 
+Observe que, para $h > 1$, teremos os termos de covarância $Cov(\epsilon_{t+h}, Y_t)$ e $\theta_1 Cov(\epsilon_{t+h-1}, Y_t)$ zerados, pois o ruído branco do futuro não interfere em $Y_t$. Assim, neste caso, as funções de autocovariância e autocorrelacão de $Y_t$ que é um ARMA(1,1) estacionário se comportam como as de um AR(1): 
 
 $$
 \gamma_Y(h) = \phi_1\gamma_Y(h-1)
@@ -119,5 +119,15 @@ $$
 $$
 e
 $$
-\gamma_Y(1) =  \frac{(\phi_1^2\theta_1 + \theta_1 + \phi_1\theta_1^2 + \theta_1)\sigma^2}{1-\phi_2} = \frac{(1+\phi_1\theta_1)(\phi_1+\theta_1)}{1-\phi_2}\sigma^2
+\gamma_Y(1) =  \frac{(\phi_1^2\theta_1 + \theta_1 + \phi_1\theta_1^2 + \theta_1)\sigma^2}{1-\phi_1^2} = \frac{(1+\phi_1\theta_1)(\phi_1+\theta_1)}{1-\phi_1^2}\sigma^2
 $$
+Portanto, para $h \leq 1$,
+$$
+\rho_Y(1) = \frac{\gamma_Y(1)}{\gamma_Y(0)} = \frac{(1+\phi_1\theta_1)(\phi_1+\theta_1)}{2\phi_1\theta_1 + 1 + \theta_1^2} 
+$$
+e para $h > 1$:
+$$
+\rho_Y(h) = \phi_1\rho(h-1)
+$$
+
+# b) 
