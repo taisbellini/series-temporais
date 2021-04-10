@@ -1,0 +1,123 @@
+---
+title: "PPGEst - Prova EST0203 - Séries Temporais - Verão 2021"
+author: "Tais Bellini"
+date: "4/10/2021"
+output: pdf_document
+header-includes:
+  - \DeclareMathOperator{\EX}{\mathbb{E}}
+  - \DeclareMathOperator{\Z}{\mathbb{Z}}
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Qestão 1: Derivar as funções de autocorrelação:
+
+## a) De $Y_t$ que é um ARMA(1,1) estacionário.
+
+Seja $\{ X_t \}_{t \in Z}$, um processo estocástico ARMA(1,1) estacionário, podemos representá-lo da seguinte forma:
+
+$$
+Y_t = \phi_1 Y_{t-1} + \epsilon_t + \theta_1 \epsilon_{t-1}
+$$
+onde $Y_t = X_t - \mu$, $\mu = \EX{X_t}$, $\{\epsilon_t\}_{t \in Z}$ ~ $RB(0, \sigma^2)$.
+
+A função de autocorrelação ($\rho_Y(h)$) se dá pela razão entre a função de autocovariância no lag h ($\gamma_Y(h)$) e a função de autocorrelação no lag 0 ($\gamma_Y(0)$):
+
+$$
+\rho_Y(h) = \frac{\gamma_Y(h)}{\gamma_Y(0)}
+$$
+
+Portanto, para calcular a funcão de autocorrelação, precisamos da função de autocovariância:
+
+$$ \gamma_Y(h) = Cov(Y_t, Y_{t-h}) = Cov(Y_{t+h}, Y_t)$$
+Abrindo $Y_{t+h}$, obtemos:
+
+$$
+\gamma_Y(h) = Cov[(\phi_1 Y_{t+h-1} + \epsilon_{t+h} + \theta_1 \epsilon_{t+h-1}),Y_t)]
+$$
+$$
+= \phi_1 Cov(Y_{t+h-1},Y_t) + Cov(\epsilon_{t+h}, Y_t) + \theta_1 Cov(\epsilon_{t+h-1}, Y_t)
+$$
+
+Agora note que $Cov(Y_{t+h-1}, Y_t) = \gamma_Y(h-1)$. Assim, a função de autocorrelação $\gamma_Y(h)$ se dá por: 
+
+$$
+\gamma_Y(h) = \phi_1 \gamma_Y(h-1) + Cov(\epsilon_{t+h}, Y_t) + \theta_1 Cov(\epsilon_{t+h-1}, Y_t)
+$$
+
+Observe que, para $h > 1$, teremos os termos de covarância $Cov(\epsilon_{t+h}, Y_t)$ e $\theta_1 Cov(\epsilon_{t+h-1})$ zerados, pois o ruído branco do futuro não interfere em $Y_t$. Assim, neste caso, as funções de autocovariância e autocorrelacão de $Y_t$ que é um ARMA(1,1) estacionário se comportam como as de um AR(1): 
+
+$$
+\gamma_Y(h) = \phi_1\gamma_Y(h-1)
+$$
+$$
+\rho_Y(h) = \phi_1\rho(h-1)
+$$
+onde $h>1$.
+
+Já para $h \leq 1$, os termos de covariância não são zerados. Para $h=0$, temos:
+
+\begin{equation}
+\gamma_Y(0) = \phi_1 \gamma_Y(-1) + Cov(\epsilon_t, Y_t) + \theta_1Cov(\epsilon_{t-1}, Y_t)
+\label{gamma0_raw}
+\end{equation}
+
+Sabemos que, quando $Y_t$ é estacionário, $\gamma_Y(-h) = \gamma_Y(h)$. Ainda, 
+
+$$
+Cov(\epsilon_t, Y_t) = Cov(\epsilon_t, (\phi_1Y_{t-1} + \epsilon_t + \theta_1\epsilon_{t-1}))
+$$
+$$
+= \phi_1Cov(\epsilon_t, Y_{t-1}) + Cov(\epsilon_t, \epsilon_t) + \theta_1Cov(\epsilon_t, \epsilon_{t-1})
+$$
+onde $Cov(\epsilon_t,Y_{t-1}) = 0$, pois $Y_{t-1}$ não depende de $\epsilon$ no tempo presente. Como $\epsilon_t$ é ruído branco, $Cov(\epsilon_t, \epsilon_{t-1})=0$ e $Cov(\epsilon_t, \epsilon_t) = \sigma^2$ logo, podemos expressar
+
+\begin{equation}
+Cov(\epsilon_t, Y_t)  = \sigma^2
+\label{cov_et_yt}
+\end{equation}
+
+Para determinarmos a covariância entre $\epsilon_{t-1}$ e $Y_t$, temos que:
+\begin{equation}
+Cov(\epsilon_{t-1}, Y_t) = \phi_1Cov(\epsilon_{t-1}, Y_{t-1}) + Cov(\epsilon_{t-1}, \epsilon_t) + \theta_1 Cov(\epsilon_{t-1}, \epsilon_{t-1})
+\label{cov_et-1_yt_raw}
+\end{equation}
+onde $Cov(\epsilon_{t-1}, \epsilon_t) = 0$, $Cov(\epsilon_{t-1}, \epsilon_{t-1}) = \sigma^2$ e 
+$$
+Cov(\epsilon_{t-1}, Y_{t-1}) = Cov(\epsilon_{t-1}, (\phi_1Y_{t-2} + \epsilon_{t-1} + \theta_1\epsilon_{t-2})) = \phi_1Cov(\epsilon_{t-1}, Y_{t-2}) + Cov(\epsilon_{t-1},\epsilon_{t-1}) + \theta_1Cov(\epsilon_{t-1}, \epsilon_{t-2})
+$$
+no qual, pelas propriedades do processo e do ruído branco, $Cov(\epsilon_{t-1}, Y_{t-2}) = 0$, $Cov(\epsilon_{t-1}, \epsilon_{t-2}) = 0$ e $Cov(\epsilon_{t-1},\epsilon_{t-1}) = \sigma^2$. Portanto, 
+\begin{equation}
+Cov(\epsilon_{t-1}, Y_{t-1}) = \sigma^2
+\label{cov_etmin1_ytmin1}
+\end{equation}
+
+Substituindo \ref{cov_etmin1_ytmin1} em \ref{cov_et-1_yt_raw} e considerando as propriedades do processo e de ruído branco, temos 
+\begin{equation}
+Cov(\epsilon_{t-1}, Y_t) = \phi_1\sigma^2 + \theta_1\sigma^2
+\label{cov_et-1_yt}
+\end{equation}
+
+Finalmente, substituindo \ref{cov_et-1_yt} e \ref{cov_et_yt} em \ref{gamma0_raw}, temos:
+$$
+\gamma_Y(0) = \phi_1\gamma_Y(1) + \sigma^2 + \theta_1 (\phi_1 + \theta_1)\sigma^2
+$$
+Para $h=1$, determinamos que:
+
+\begin{equation}
+\gamma_Y(1) = \phi_1 \gamma_Y(0) + Cov(\epsilon_{t+1}, Y_t) + \theta_1 Cov(\epsilon_{t}, Y_t) = \phi_1 \gamma_Y(0) + \theta_1\sigma^2
+\label{gamma1}
+\end{equation}
+
+Resolvendo $\gamma_Y(0)$ e $\gamma_Y(1)$ simultaneamente, concluímos que:
+
+$$
+\gamma_Y(0) = \frac{2\phi_1\theta_1 + 1 + \theta_1^2}{1-\phi_1^2}\sigma^2
+$$
+e
+$$
+\gamma_Y(1) =  \frac{(\phi_1^2\theta_1 + \theta_1 + \phi_1\theta_1^2 + \theta_1)\sigma^2}{1-\phi_2} = \frac{(1+\phi_1\theta_1)(\phi_1+\theta_1)}{1-\phi_2}\sigma^2
+$$
