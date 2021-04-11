@@ -13,9 +13,9 @@ header-includes:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Questão 1: Derivar as funções de autocorrelação:
+## Questão 1: Derivar as funções de autocorrelação:
 
-## a) De $Y_t$ que é um ARMA(1,1) estacionário.
+### a) De $Y_t$ que é um ARMA(1,1) estacionário.
 
 Seja $\{ X_t \}_{t \in Z}$ um processo estocástico ARMA(1,1) estacionário, podemos representá-lo da seguinte forma:
 
@@ -134,4 +134,104 @@ $$
 \rho_Y(h) = \phi_1\rho(h-1)
 $$
 
-# b) 
+### b) De $Y_t^2$, onde $Y_t$ é um ARCH(2) estacionário.
+
+Dado que $Y_t$ é um ARCH(2) estacionário, temos o seguinte modelo:
+
+\begin{equation}
+Y_t = \sigma_t\epsilon_t
+\label{yt}
+\end{equation}
+
+onde $\epsilon_t \sim RB(0,1)$ e $\sigma_t^2$ é a variância condicional de $Y_t$ dadas as informações que temos até o instante $\Im_{t-1}$ que tem a seguinte estrutura:
+\begin{equation}
+\sigma^2 = \alpha_0 + \alpha_1Y_{t-1}^2 + \alpha_2Y_{t-2}^2
+\label{sigma2}
+\end{equation}
+
+Para determinar a função de autocorrelação do $Y_t^2$, vamos elevar \ref{yt} ao quadrado em ambos os lados:
+
+$$
+Y_t^2 = \sigma_t^2\epsilon_t^2
+$$
+
+Somando e subtraindo $\sigma^2$ da equação, obtemos a seguinte estrutura:
+
+$$
+Y_t^2 = \alpha_0 + \alpha_1Y_{t-1}^2 + \alpha_2Y_{t-2}^2 + \sigma^2(\epsilon_t^2-1)
+$$
+
+Observe que $\EX{[\sigma_t^2(\epsilon_t^2-1)]} = 0$: 
+$$
+\EX{[\sigma_t^2(\epsilon_t^2-1)]} = \EX{\sigma_t^2}\EX{[\epsilon_t^2 - 1]}
+$$
+onde
+$$
+\EX{[\epsilon_t^2 - 1]} = \EX{\epsilon_t^2} - 1 = Var(\epsilon_t) + [\EX{\epsilon}]^2 - 1 = 1 + 0 -1 = 0
+$$
+
+Ainda, $Var(\sigma_t^2(\epsilon_t^2-1)) = Var(\epsilon_t^2-1)\EX{\sigma^2}^2$ e, sob a condição de que \ref{yt} e \ref{sigma2} têm quarto momento definido,  $Cov(\sigma_t^2(\epsilon_t^2-1), \sigma_{t-k}^2(\epsilon_{t-k}^2-1)) = 0$ para $k = 1, 2, \dots$. Assim, concluímos que $\sigma_t^2(\epsilon_t^2-1)$ é um ruído branco, e a estrutura de $Y_t^2$ se dá por: 
+
+\begin{equation}
+Y_t^2 = \alpha_0 + \alpha_1Y_{t-1}^2 + \alpha_2Y_{t-2}^2 + \varepsilon_t
+\label{yt2}
+\end{equation}
+onde $EX{\varepsilon_t} = 0$ e $Var(\varepsilon_t) = Var(\epsilon_t^2-1)\EX{\sigma^2}^2 = \Sigma$.
+
+Portanto, temos que $Y_t^2$ é um processo AR(2). Assim, sua função de autocorrelação ($\rho_{Y^2}$) é derivada da autocovariância ($\gamma_{Y^2}$):
+
+$$
+\gamma_{Y^2}(k) = \EX{[(Y_t^2- \mu), (Y_{t-k}^2 - \mu)]} = \EX{(Y_t^2Y_{t-k}^2)}
+$$
+$$
+= \EX{[(\alpha_1Y_{t-1}^2 + \alpha_2Y_{t-2}^2 + \varepsilon_t)Y_{t-k}^2]}
+$$
+$$
+= \alpha_1\EX{[Y_{t-1}^2Y_{t-k}^2]} + \alpha_2\EX{[Y_{t-2}^2Y_{t-k}^2]} + \EX{[\varepsilon_tY_{t-k}^2]}
+$$
+Ou seja, para $k=0$:
+$$
+\gamma_{Y^2}(k) = \alpha_1\gamma_{Y^2}(k-1) + \alpha_2\gamma_{Y^2}(k-2) + \Sigma
+$$
+E para $k>0$:
+$$
+\gamma_{Y^2}(k) = \alpha_1\gamma_{Y^2}(k-1) + \alpha_2\gamma_{Y^2}(k-2)
+$$
+Portanto, as condições iniciais se dão pela resolução das seguintes equações simultaneamente:
+
+$$
+\gamma_{Y^2}(0) = \alpha_1\gamma_{Y^2}(1) + \alpha_2\gamma_{Y^2}(2) + \Sigma
+$$
+$$
+\gamma_{Y^2}(1) = \alpha_1\gamma_{Y^2}(0) + \alpha_2\gamma_{Y^2}(1)
+$$
+$$
+\gamma_{Y^2}(2) = \alpha_1\gamma_{Y^2}(1) + \alpha_2\gamma_{Y^2}(0)
+$$
+Logo, temos:
+
+$$
+\gamma_{Y^2}(0) = \left(\frac{1-\alpha_2}{1+\alpha_2}\right)\frac{\Sigma}{(1-\alpha_2)^2-\alpha_1^2}
+$$
+$$
+\gamma_{Y^2}(1) = \frac{\alpha_1}{1-\alpha_2}\gamma_{Y_t^2}(0) = \left(\frac{\alpha_1}{1-\alpha_2}\right)\left(\frac{1-\alpha_2}{1+\alpha_2}\right)\frac{\Sigma}{(1-\alpha_2)^2-\alpha_1^2}
+$$
+A partir disto, podemos derivar $\gamma_{Y^2}(k)$ para $k = 2, 3, \dots$:
+$$
+\gamma_{Y^2}(k) = \alpha_1\gamma_{Y^2}(k-1) + \alpha_2\gamma_{Y^2}(k-2)
+$$
+Finalmente, derivamos as funções de autocorrelação ($\rho_{Y_t^2}(k)$): 
+
+$$
+\rho_{Y_t^2}(1) = \frac{\gamma_{Y^2}(1)}{\gamma_{Y^2}(0)} = \frac{\alpha_1}{1-\alpha_2}
+$$
+$$
+\rho_{Y_t^2}(2) = \alpha_1\rho_{Y_t^2}(1) + \alpha_2 = \frac{\alpha_1^2+(1-\alpha_2)\alpha_2}{1-\alpha_2}
+$$
+Para $k = 3, 4, \dots$:
+$$
+\rho_{Y_t^2}(k) = \alpha_1\rho_{Y_t^2}(k-1) + \alpha_2\rho_{Y_t^2}(k-2)
+$$
+## Questão 2
+
+### a) Encontre a distribuição assintótica do estimador de máxima versossimilhança (EMV) de $\phi_1$ no modelo $Y_t = \phi_0 + \phi_1y_{t-1} + \epsilon_t$ onde $\epsilon_t \sim N(0, \sigma^2)$ Use o resultado geral para os EMV´s e explicite qualquer suposição adicional necessária.
