@@ -6,6 +6,8 @@ output: pdf_document
 header-includes:
   - \DeclareMathOperator{\EX}{\mathbb{E}}
   - \DeclareMathOperator{\Z}{\mathbb{Z}}
+  - \DeclareMathOperator*{\argmax}{arg\,max}
+
 
 ---
 
@@ -234,4 +236,387 @@ $$
 $$
 ## Questão 2
 
-### a) Encontre a distribuição assintótica do estimador de máxima versossimilhança (EMV) de $\phi_1$ no modelo $Y_t = \phi_0 + \phi_1y_{t-1} + \epsilon_t$ onde $\epsilon_t \sim N(0, \sigma^2)$ Use o resultado geral para os EMV´s e explicite qualquer suposição adicional necessária.
+### a) Encontre a distribuição assintótica do estimador de máxima versossimilhança (EMV) de $\phi_1$ no modelo $y_t = \phi_0 + \phi_1y_{t-1} + \epsilon_t$ onde $\epsilon_t \sim N(0, \sigma^2)$ Use o resultado geral para os EMV's e explicite qualquer suposição adicional necessária.
+
+Seja $\theta = (\phi_1, \dots, \phi_p, \sigma^2)$ o vetor dos parâmetros populacionais que deseja-se estimar e $\mathbf{Y} = (Y_1, \dots, Y_{T-1}, Y_T)$ um amostra observada. A função densidade de probabilidade (FDP) conjunta é denotada por:
+\begin{equation}
+f(Y_T, Y_{T-1} \dots, Y_1;\theta)
+\label{fdp}
+\end{equation}
+
+Logo, a função de máxima verossimilhança é dada por:
+\begin{equation}
+L(\theta|\mathbf{Y}) = f(Y_T, Y_{T-1} \dots, Y_1;\theta)
+\label{fmv}
+\end{equation}
+
+E o estimador de log-máxima verossimilhança (EMV) será o argumento que maximiza a função de máxima verossimilhança:
+$$
+\hat{\theta}_{EMV} = \arg \max_{\theta} l(\theta|\mathbf{Y})
+$$
+onde $l(\theta|\mathbf{y}) = ln(L(\theta|\mathbf{y}))$.
+
+Assumindo que a derivada de $l(\theta|\mathbf{y})$ em relação a $\theta$ existe e é contínua, determinamos o $\hat{\theta}_{EMV}$ resolvendo:
+$$
+\frac{\delta l(\theta|\mathbf{Y})}{\delta \theta} = 0
+$$
+Agora, considerando o modelo AR(p):
+\begin{equation}
+Y_t = \phi_0 + \phi_1Y_{t-1} + \dots + \phi_pY_{t-p} + \epsilon_t
+\label{arp}
+\end{equation}
+onde $\epsilon_t \sim i.i.d\ N(0, \sigma^2)$, e $Y_{t-1} \dots, Y_{t-p}$ valores do passado já observados, podemos considerar que $\phi_0 + \phi_1Y_{t-1} + \dots + \phi_pY_{t-p}$ é um valor constante que está sendo somado a $\epsilon_t$ e, portanto:
+$$
+Y_t|\Im_{t-1} \sim N(\phi_0 + \phi_1Y_{t-1} + \dots + \phi_pY_{t-p}, \sigma^2)
+$$
+Ainda, sabendo que uma FDP conjunta qualquer $f(X,Y)$ pode ser decomposta em $f(Y|X)f(X)$ e conhecendo a distribuicão de $Y_t|\Im_{t-1}$ podemos reescrever \ref{fmv} como:
+$$
+L(\theta|\mathbf{Y}) = f(Y_T|Y_1, \dots, Y_{T-1};\theta)f(Y_{T-1} \dots, Y_1;\theta)
+$$
+E assim podemos recursivamente decompor a função conjunta do segundo termo de forma a obter o produto das FDP condicionais de T-1 até 2, e ter FDP marginal de $Y_1$ no segundo termo.
+
+Agora 
+
+Ainda, no caso de $Y_1$, vamos retomar o fato de que, para um processo estacionário AR(1):
+$$
+\EX{Y_1} = \mu = \frac{\phi_0}{1-\phi_1}
+$$
+$$
+Var(Y_1) = \frac{\sigma^2}{1-\phi_1^2}
+$$
+Portanto, temos que $Y_1 \sim N(\frac{\phi_0}{1-\phi_1}, \frac{\sigma^2}{1-\phi_1^2})$.
+
+Olhando especificamente para o modelo AR(1):
+\begin{equation}
+Y_t = \phi_0 + \phi_1Y_{t-1} + \epsilon_t
+\label{ar1}
+\end{equation}
+
+A decomposição da função de máxima verossimilhança é feita da seguinte forma:
+
+$$
+L(\theta|\mathbf{Y}) = f(Y_t|Y_{t-1};\theta)f(Y_{t-1};\theta)
+$$
+https://faculty.washington.edu/ezivot/econ584/notes/armaestimation.pdf
+http://www.science.unitn.it/AnalisiInfoTLC/SSP/SSP14_15/lectures/lecture15.pdf
+https://math.unice.fr/~frapetti/CorsoP/Chapitre_4_IMEA_1.pdf
+http://www-stat.wharton.upenn.edu/~stine/stat910/lectures/12_est_arma.pdf
+http://course.sdu.edu.cn/G2S/eWebEditor/uploadfile/20140110134920017.pdf
+
+## Questão 3
+
+### b) Com uma série temporal vetorial multivariada a sua escolha (mas com dimensão mínima de 3), estime um VAR ou VEC (o que for mais adequado – faça testes),mostrando os resultados e os interpretando.
+
+Para esta questão, será usado um banco de dados de 1462 observações que mede o clima diário da cidade de Delhi, na Índia, no período de primeiro de Janeiro de 2013 a 24 de Abril de 2017 medindo os seguintes parâmetros: temperatura média, umidade, velocidade do vento e pressão média do ar. 
+
+```{r, echo = F, include = F}
+library(tseries) # for ADF unit root tests
+library(urca)
+library(vars)
+library(mFilter)
+library(forecast)
+```
+
+Análise exploratória dos dados:
+
+```{r}
+data = read.csv("DailyDelhiClimateTrain.csv", sep=",")
+data = data[data$meanpressure > 990 & data$meanpressure < 1300,] #remove outliers
+data = data[data$wind_speed < 30,] #remove outliers
+ts_data = ts(data)
+temp = ts(ts_data[,2])
+humidity = ts(ts_data[,3])
+wind = ts(ts_data[,4])
+pressure = ts(ts_data[,5])
+plot(scale(ts_data[,-1]), main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
+```
+
+Para uma análise de séries temporais multivariadas, temos o modelo VAR, cuja fórmula geral VAR(p) tem a seguinte estrutura:
+
+$$
+Y_t = \mathbf{\mu} + A_1\mathbf{Y_{t-1}} + \dots + A_p\mathbf{Y_{t-p}} + \mathbf{\epsilon_t}
+$$
+onde $\mu$ é o vetor de médias da série, $A_i$ são as matrizes dos coeficientes para cada lag e $\epsilon_t$  é vetor de erros com distribuição normal multivariada com média zero. 
+
+Para utilizá-lo, é necessário avaliar se as séries a serem trabalhadas são estacionárias:
+
+```{r, warning=F}
+par(mfrow=c(2,2))
+acf(temp, main = "ACF Temperatura Média")
+acf(humidity, main = "ACF Umidade")
+acf(wind, main = "ACF Velocidade do vento")
+acf(pressure, main = "ACF Pressão do ar Média")
+
+par(mfrow=c(2,2))
+pacf(temp)
+pacf(humidity)
+pacf(wind)
+pacf(pressure)
+
+
+t = adf.test(temp)
+t = adf.test(diff(temp))
+h = adf.test(humidity)
+w = adf.test(wind)
+p = adf.test(pressure)
+p = adf.test(diff(pressure))
+
+adf_pvalues = c(t$p.value, h$p.value, w$p.value, p$p.value)
+names(adf_pvalues) = c("Temp", "Umidade", "Vento", "Pressao")
+paste("P-Value do teste ADF")
+adf_pvalues
+```
+
+Observamos que apenas a série da temperatura média possui p-valor > 0.05, mas ela se torna estacionária ao tomar uma diferença. Assim, utilizaremos esta variável com uma diferença para modelar o VAR.
+
+
+
+```{r}
+autoplot(cbind(temp, humidity, wind, scale(pressure)))
+
+ts_data_I = cbind(diff(temp), humidity, wind, diff(pressure))
+jo = ca.jo(ts_data_I)
+summary(jo)
+ts_data_I = ts_data_I[-1,]
+
+fit = lm(diff(temp)~diff(pressure))
+summary(fit)
+plot(residuals(fit))
+
+VARselect(ts_data_I, lag.max = 40, type="const")
+
+model = VAR(ts_data_I, p=1, type="const")
+summary(model)
+
+serial_model = serial.test(model, lags.pt = 15)
+serial_model
+
+arch.test(model, lags.multi = 15, multivariate.only = T)
+
+normality.test(model, multivariate.only = T)
+plot(stability(model))
+
+
+```
+
+Estimação
+
+```{r}
+library(tsDyn)
+model = VECM(ts_data[,-1], 3, r = 2, estim = "ML")
+summary(model)
+```
+
+
+Diagnostico
+
+```{r}
+varmod = vec2var(jo, r = 2)
+
+ser = serial.test(varmod, lags.pt = 4)
+ser
+
+arch.test(varmod, lags.multi = 15, multivariate.only = T)
+
+normality.test(varmod, multivariate.only = T)
+```
+
+
+```{r}
+```
+
+
+```{r, warning=F}
+par(mfrow=c(2,2))
+for(i in 2:5){
+  acf(ts_data[,i])
+}
+
+t = adf.test(temp)
+t = adf.test(diff(temp))
+h = adf.test(humidity)
+w = adf.test(wind)
+p = adf.test(pressure)
+
+adf_pvalues = c(t$p.value, h$p.value, w$p.value, p$p.value)
+names(adf_pvalues) = c("Temp", "Umidade", "Vento", "Pressao")
+adf_pvalues
+```
+
+Observa-se que apenas 2 variáveis são séries estacionárias. Portanto, vamos testar a co-integração através do método dos autovalores de Johansen. 
+
+Para isto, temos o modelo VEC, que faz a diferenciação das séries obtendo a seguinte forma:
+
+$$
+\Delta \mathbf{Y_t} = \mathbf{\mu} + A\mathbf{Y_{t-1}} + \Gamma_1\Delta \mathbf{Y_{t-1}} + \dots + \Gamma_p\Delta \mathbf{Y_{t-p}} + \mathbf{\epsilon_t}
+$$
+onde $\Delta \mathbf{Y_{t}} = \mathbf{Y_t} - \mathbf{Y_{t-1}}$ é o operador de diferenciação, A é a matriz de coeficientes para o primeiro lag e $\Gamma_i$ as matrizes dos coeficientes para cada lag. 
+
+O teste de Johansen verifica sequencialmente se o posto da matriz é 0, 1, 2, ... até o número de séries sendo avaliadas menos um. Se o posto da matriz A = 0, não há co-integração.
+
+```{r}
+jotest = ca.jo(ts_data[,-1], spec = "longrun")
+summary(jotest)
+
+lambda = c(0.245989042, 0.063838185, 0.009330528)/0.331000093
+
+temperature = lambda[1]*humidity + lambda[2]*wind + lambda[3]*pressure
+plot(temperature, type = "l")
+adf.test(temperature)
+```
+
+
+
+
+
+## Questão 4: Utilizando uma série temporal a sua escolha (mas com pelo menos 10 séries temporais como covariáveis e pelo menos 3 lags de cada uma delas, ou seja, pelo menos 30 covariáveis), implemente, para estimação e seleção, todos métodos vistos em aula sobre machine/statistical learning: ridge, lasso, adalasso, tress (baging, random forest e boosting). Mostre os resultados e os interprete.
+
+Para esta questão, será utilizado um banco de dados com dados do comportamento do tráfego de veículos em São Paulo. O banco tem observações de um período de 14 de Dezembro de 2009 até 18 de Dezembro de 2009 (segunda-feira a sexta-feira), das 7:00 até as 20:00 de 30 em 30 minutos. Os dados contam com a observação de 16 variáveis que contam o número de ocorrências das seguintes situações: ônibus parados, caminhões quebrados, excesso de veículos, acidentes com vítimas, atropelamentos, veículos de bombeiros, ocorrências com carga, acidentes com cargas perigosas, falta de luz, incêndios, alagamentos, manifestações, erro na rede de ônibus elétricos, árvore na pista, semáforo desligado e semáforo intermitente. Ainda, possui a variável lentidão do tráfego, em porcentagem.
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+```
+
+
+```{r}
+data = read.csv2("urban_traffic_sp.csv", sep = ";")
+colnames(data) = c("Hour", "ImmobilizedBus", "BrokenTruck", "VehicleExcess", 
+                   "AccidentVictim", "RunningOver" , "FireVehicles", 
+                   "OccurrenceFreight", "IncidentDangerousFreight",
+                   "LackOfElectricity", "Fire", "Flooding", "Manifestations",
+                   "DefectNetworkTrolleybuses", "TreeOnTheRoad", "SemaphoreOff",
+                   "IntermittentSemaphore", "SlownessinTraffic(%)")
+
+ts_data = ts(data)
+
+plot(ts_data[,c(18, 2:4)], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
+plot(ts_data[,5:8], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
+plot(ts_data[,9:12], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
+plot(ts_data[,13:15], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
+plot(ts_data[,16:17], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
+
+```
+
+#### Ridge
+
+A regressão Ridge é uma regressão de mínimos quadrados ordinários, mas que realiza o _shrinkage_ dos coeficientes a partir de uma penalização na soma dos seus quadrados, impondo que esta soma seja menos que um valor definido $t$. Assim, temos que: 
+
+$$
+\hat{\beta}_{ridge} = \arg \min_{\beta_0, \dots, \beta_k}  \Bigg\{\sum_{i=1}^n\left(y_i - \beta_0 - \sum_{j=1}^k\beta_j x_{ij}\right) + \lambda\sum_{j=1}^k\beta_j^2\Bigg\}
+$$
+
+O resultado são coeficientes com valores menores do que uma regressão de mínimos quadrados tradicional (OLS).
+
+Vamos determinar a variável resposta e centralizá-la, já que o algoritmo de regressão Ridge parte do pressuposto que os preditores estão padronizados e resposta centralizada. As covariáveis do banco já estão na mesma unidade, não sendo necessária a padronização.
+
+```{r, echo=F, warning=F, include=F}
+library(glmnet)
+library(knitr)
+library(psych) 
+```
+
+```{r}
+# variavel resposta:
+y = scale(data$`SlownessinTraffic(%)`, center = T, scale = F)
+
+#covariaveis
+X = as.matrix(data[,-c(1,18)])
+```
+
+
+Vamos observar como fica o ajuste em uma regressão de mínimos quadrados tradicional:
+```{r}
+#OLS
+fit.OLS = lm(formula = y~X)
+B.hat.OLS = fit.OLS$coefficients
+kable(B.hat.OLS)
+```
+
+Agora para executar a regressão ridge, vamos escolher o $\lambda$ ótimo a partir dos critérios AIC e BIC:
+```{r}
+lambdas_to_try = 10^seq(-2, 3, length.out = 100)
+aic <- c()
+bic <- c()
+
+for (lambda in seq(lambdas_to_try)) {
+  # Não padronizamos os dados pois estão na mesma unidade (num de ocorrências)
+  model <- glmnet(X, y, alpha = 0, lambda = lambdas_to_try[lambda], standardize = F)
+  
+  # Coeficientes e residuos (sem o intercepto)
+  betas <- as.vector((as.matrix(coef(model))[-1, ]))
+  resid <- y - (X %*% betas)
+  
+  # Computando AIC e BIC
+  ld <- lambdas_to_try[lambda] * diag(ncol(X))
+  H <- X %*% solve(t(X) %*% X + ld) %*% t(X)
+  df <- tr(H)
+  
+  aic[lambda] <- nrow(X) * log(t(resid) %*% resid) + 2 * df
+  bic[lambda] <- nrow(X) * log(t(resid) %*% resid) + 2 * df * log(nrow(X))
+}
+
+# Plot information criteria against tried values of lambdas
+plot(log(lambdas_to_try), aic, col = "orange", type = "l", ylab = "Information Criterion",
+     ylim = c(1020, 1158))
+lines(log(lambdas_to_try), bic, col = "skyblue3")
+legend("bottomright", lwd = 1, col = c("orange", "skyblue3"), legend = c("AIC", "BIC"))
+```
+
+Executando a regressão ridge com lambda fixo, e os lambdas escolhidos por AIC e BIC:
+
+``` {r}
+lambda_aic = lambdas_to_try[which.min(aic)]
+lambda_bic = lambdas_to_try[which.min(bic)]
+lambda_fixed = 5
+
+#Ridge Regression - alpha = 0 - AIC
+fit.RR.AIC = glmnet(y=y,x=X, lambda=lambda_aic, alpha = 0)
+fit.RR.BIC = glmnet(y=y,x=X, lambda=lambda_bic, alpha = 0)
+fit.RR.Fixed = glmnet(y=y,x=X, lambda=lambda_fixed, alpha = 0)
+
+#Coeficientes do RR
+B.hat.RR.AIC = as.vector(fit.RR.AIC$beta)
+B.hat.RR.BIC = as.vector(fit.RR.BIC$beta)
+B.hat.RR.Fixed = as.vector(fit.RR.Fixed$beta)
+
+#Intercepto do RR
+B0.hat.RR.AIC = fit.RR.AIC$a0
+B0.hat.RR.BIC = fit.RR.BIC$a0
+B0.hat.RR.Fixed = fit.RR.Fixed$a0
+
+B.hat.RR.AIC = c(B0.hat.RR.AIC, B.hat.RR.AIC)
+B.hat.RR.BIC = c(B0.hat.RR.BIC, B.hat.RR.BIC)
+B.hat.RR.Fixed = c(B0.hat.RR.Fixed, B.hat.RR.Fixed)
+names(B.hat.RR.AIC) = names(B.hat.RR.BIC) = names(B.hat.RR.Fixed) = names(B.hat.OLS)
+
+lambdas = cbind(0, lambda_aic, lambda_bic, lambda_fixed)
+coefs = cbind(B.hat.OLS, B.hat.RR.AIC, B.hat.RR.BIC, B.hat.RR.Fixed)
+rownames(lambdas) = "Lambda value"
+rbind(coefs, lambdas)
+
+```
+
+Conseguimos observar que o $\lambda$ escolhido pelo critério AIC é bem pequeno (0.01), resultando em valores muito similares da regressão tradicional. Já o $\lambda$ escolhido pelo critério BIC é bem grande, resultando em coeficientes muito pequenos. O $\lambda$ fixado no valor intermediário de 5 reduziu moderadamente os coeficientes. Estes resultados eram esperados, já que o valor dos coeficientes diminui a medida que o $\lambda$ aumenta, como observado no gráfico abaixo.
+
+
+```{r}
+res <- glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = FALSE)
+plot(res, xvar = "lambda")
+```
+
+
+## Notes
+
+VAR:
+https://www.quantstart.com/articles/Johansen-Test-for-Cointegrating-Time-Series-Analysis-in-R/
+https://bookdown.org/ccolonescu/RPoE4/vec-and-var-models.html#estimating-a-vec-model
+https://corporatefinanceinstitute.com/resources/knowledge/other/cointegration/#:~:text=A%20cointegration%20test%20is%20used,time%20in%20the%20long%20term.
+
+arrtigo lidando com clima: https://www.kaggle.com/sumanthvrao/daily-climate-time-series-data
+http://www.phdeconomics.sssup.it/documents/Lesson17.pdf
+
+ref AIC BIC: https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
+
+
