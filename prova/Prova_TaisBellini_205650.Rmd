@@ -564,47 +564,181 @@ lines(log(lambdas_to_try), bic, col = "skyblue3")
 legend("bottomright", lwd = 1, col = c("orange", "skyblue3"), legend = c("AIC", "BIC"))
 ```
 
-Executando a regressão ridge com lambda fixo, e os lambdas escolhidos por AIC e BIC:
+Executando a regressão ridge com lambda fixo, e os lambdas escolhidos por AIC, BIC e cross-validation:
 
 ``` {r}
 lambda_aic = lambdas_to_try[which.min(aic)]
 lambda_bic = lambdas_to_try[which.min(bic)]
+lambda_cv = cv.glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = F, nfolds = 10)$lambda.min
 lambda_fixed = 5
 
 #Ridge Regression - alpha = 0 - AIC
 fit.RR.AIC = glmnet(y=y,x=X, lambda=lambda_aic, alpha = 0)
 fit.RR.BIC = glmnet(y=y,x=X, lambda=lambda_bic, alpha = 0)
+fit.RR.CV = glmnet(y=y,x=X, lambda=lambda_cv, alpha = 0)
 fit.RR.Fixed = glmnet(y=y,x=X, lambda=lambda_fixed, alpha = 0)
 
 #Coeficientes do RR
 B.hat.RR.AIC = as.vector(fit.RR.AIC$beta)
 B.hat.RR.BIC = as.vector(fit.RR.BIC$beta)
+B.hat.RR.CV = as.vector(fit.RR.CV$beta)
 B.hat.RR.Fixed = as.vector(fit.RR.Fixed$beta)
 
 #Intercepto do RR
 B0.hat.RR.AIC = fit.RR.AIC$a0
 B0.hat.RR.BIC = fit.RR.BIC$a0
+B0.hat.RR.CV = fit.RR.CV$a0
 B0.hat.RR.Fixed = fit.RR.Fixed$a0
 
 B.hat.RR.AIC = c(B0.hat.RR.AIC, B.hat.RR.AIC)
 B.hat.RR.BIC = c(B0.hat.RR.BIC, B.hat.RR.BIC)
+B.hat.RR.CV = c(B0.hat.RR.CV, B.hat.RR.CV)
 B.hat.RR.Fixed = c(B0.hat.RR.Fixed, B.hat.RR.Fixed)
-names(B.hat.RR.AIC) = names(B.hat.RR.BIC) = names(B.hat.RR.Fixed) = names(B.hat.OLS)
+names(B.hat.RR.AIC) = names(B.hat.RR.BIC) = names(B.hat.RR.CV) = names(B.hat.RR.Fixed) = names(B.hat.OLS)
 
-lambdas = cbind(0, lambda_aic, lambda_bic, lambda_fixed)
-coefs = cbind(B.hat.OLS, B.hat.RR.AIC, B.hat.RR.BIC, B.hat.RR.Fixed)
+lambdas = cbind(0, lambda_aic, lambda_bic, lambda_cv, lambda_fixed)
+coefs = cbind(B.hat.OLS, B.hat.RR.AIC, B.hat.RR.BIC, B.hat.RR.CV, B.hat.RR.Fixed)
 rownames(lambdas) = "Lambda value"
 rbind(coefs, lambdas)
 
 ```
 
-Conseguimos observar que o $\lambda$ escolhido pelo critério AIC é bem pequeno (0.01), resultando em valores muito similares da regressão tradicional. Já o $\lambda$ escolhido pelo critério BIC é bem grande, resultando em coeficientes muito pequenos. O $\lambda$ fixado no valor intermediário de 5 reduziu moderadamente os coeficientes. Estes resultados eram esperados, já que o valor dos coeficientes diminui a medida que o $\lambda$ aumenta, como observado no gráfico abaixo.
+Conseguimos observar que o $\lambda$ escolhido pelo critério AIC é bem pequeno (0.01), resultando em valores muito similares da regressão tradicional. Já o $\lambda$ escolhido pelo critério BIC é bem grande, resultando em coeficientes muito pequenos. Os $\lambda$ escolhidos por cross-validation e o fixado no valor 5 reduziram moderadamente os coeficientes. Estes resultados eram esperados, já que o valor dos coeficientes diminui a medida que o $\lambda$ aumenta, como observado no gráfico abaixo.
 
 
 ```{r}
 res <- glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = FALSE)
 plot(res, xvar = "lambda")
 ```
+Agora, vamos avaliar o ajuste do modelo obtido de acordo com cada lambda escolhido:
+
+```{r}
+y_hat_ols = predict(fit.OLS)
+ssr_ols = t(y - y_hat_ols) %*% (y - y_hat_ols)
+
+y_hat_aic = predict(fit.RR.AIC, X)
+ssr_aic = t(y - y_hat_aic) %*% (y - y_hat_aic)
+
+y_hat_bic = predict(fit.RR.BIC, X)
+ssr_bic = t(y - y_hat_bic) %*% (y - y_hat_bic)
+
+y_hat_cv = predict(fit.RR.CV, X)
+ssr_cv = t(y - y_hat_cv) %*% (y - y_hat_cv)
+
+y_hat_fixed = predict(fit.RR.Fixed, X)
+ssr_fixed = t(y - y_hat_fixed) %*% (y - y_hat_fixed)
+
+
+y_hat = ts(cbind(y,  y_hat_ols, y_hat_aic, y_hat_bic, y_hat_cv, y_hat_fixed))
+colnames(y_hat) = c("real", "ols", "aic", "bic", "cv", "fixed")
+df <- data.frame(y_hat)
+df$date <- as.numeric(row.names(df))
+
+
+df_gathered = df %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal()
+
+ssr = cbind(ssr_ols,ssr_aic, ssr_bic, ssr_cv, ssr_fixed)
+colnames(ssr) = c("ols", "aic", "bic", "cv", "fixed")
+rownames(ssr) = "SSR"
+kable(ssr)
+```
+
+```{r}
+df_gathered = df[,c("date", "real", "cv", "fixed" )] %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal()
+
+```
+
+
+Observa-se que o método sem penalização e o método com o lambda bem pequeno (escolhido via AIC) resulta em menos resíduos e ajusta melhor o modelo, o que é esperado, já que praticamente não exerce nenhuma penalização. No outro extremo, temos o lambda muito grande, escolhido via BIC, que ajusta muito mal os dados pois praticamente zera os coeficiente. Através de cross-validation e um lambda arbitrário, se obtém um ajuste um pouco pior mas com _shrinkage_ dos coeficientes, que era o nosso objetivo, indicando que um lambda entre 0.1 e 5 seja mais adequado para este modelo.
+
+
+#### Lasso
+
+A regressão utilizando Lasso é muito parecida com a regressão Ridge, mas neste caso penaliza-se a soma dos valores absolutos dos coeficientes, ao invés dos quadrados:
+
+$$
+\hat{\beta}_{lasso} = \arg \min_{\beta_0, \dots, \beta_k}  \Bigg\{\sum_{i=1}^n\left(y_i - \beta_0 - \sum_{j=1}^k\beta_j x_{ij}\right) + \lambda\sum_{j=1}^k|\beta_j|\Bigg\}
+$$
+
+Como resultado, temos coeficientes que são totalmente zerados, permitindo uma seleção de variáveis. 
+
+Testando com os valores de $\lambda$ fixado 0.5, 0.1 e escolhido por cross-validated:
+```{r}
+lasso_cv <- cv.glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = F, nfolds = 10)
+lambda <- lasso_cv$lambda.min
+
+fit.LASSO.CV = glmnet(y=y,x=X, lambda = lambda, alpha = 1)
+fit.LASSO.Fixed01 = glmnet(y=y,x=X, lambda = 0.1, alpha = 1)
+fit.LASSO.Fixed05 = glmnet(y=y,x=X, lambda = 0.5, alpha = 1)
+
+
+#Coeficientes do LASSO
+B.hat.LASSO.CV = as.vector(fit.LASSO.CV$beta)
+B.hat.LASSO.Fixed01 = as.vector(fit.LASSO.Fixed01$beta)
+B.hat.LASSO.Fixed05 = as.vector(fit.LASSO.Fixed05$beta)
+
+
+#Intercepto do LASSO
+B0.hat.LASSO.CV = fit.LASSO.CV$a0
+B0.hat.LASSO.Fixed01 = fit.LASSO.Fixed01$a0
+B0.hat.LASSO.Fixed05 = fit.LASSO.Fixed05$a0
+
+B.hat.LASSO.CV = c(B0.hat.LASSO.CV, B.hat.LASSO.CV)
+B.hat.LASSO.Fixed01 = c(B0.hat.LASSO.Fixed01, B.hat.LASSO.Fixed01)
+B.hat.LASSO.Fixed05 = c(B0.hat.LASSO.Fixed05, B.hat.LASSO.Fixed05)
+B.hat.RR.Fixed = c(B0.hat.RR.Fixed, B.hat.RR.Fixed)
+names(B.hat.LASSO.CV) = names(B.hat.LASSO.Fixed01) = names(B.hat.LASSO.Fixed05) = names(B.hat.OLS)
+
+lambdas = cbind(lambda, 0.1, 0.5)
+coefs = cbind(B.hat.LASSO.CV, B.hat.LASSO.Fixed01, B.hat.LASSO.Fixed05)
+rownames(lambdas) = "Lambda value"
+rbind(coefs, lambdas)
+```
+
+Observa-se que o método de cross-validation escolheu o $\lambda = 0.1$ e, em comparação com o $\lambda = 0.5$ zerou menos coeficientes, o que é esperado. As variáveis que indicam ocorrência de caminhão parado, atropelamento e acidentes com carga foram removidas do modelo. Con exceção de atropelamento, as outras variáveis possuem poucas ocorrências no banco de dados, sendo coerente a remoção delas.
+
+```{r}
+y_hat_cv = predict(fit.LASSO.CV, X)
+ssr_cv = t(y - y_hat_cv) %*% (y - y_hat_cv)
+
+y_hat_05 = predict(fit.LASSO.Fixed05, X)
+ssr_05 = t(y - y_hat_05) %*% (y - y_hat_05)
+
+y_hat = ts(cbind(y,  y_hat_cv, y_hat_05))
+colnames(y_hat) = c("real", "cv", "fixed 0.5")
+df <- data.frame(y_hat)
+df$date <- as.numeric(row.names(df))
+
+
+df_gathered = df %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal()
+
+ssr = cbind(ssr_cv, ssr_05)
+colnames(ssr) = c("cv", "fixed 0.5")
+rownames(ssr) = "SSR"
+kable(ssr)
+
+```
+
+O modelo com o $\lambda = 0.1$ obteve um melhor ajuste na predição.
+
+
+#### AdaLasso
+
 
 
 ## Notes
