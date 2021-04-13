@@ -705,7 +705,15 @@ rownames(lambdas) = "Lambda value"
 rbind(coefs, lambdas)
 ```
 
-Observa-se que o método de cross-validation escolheu o $\lambda = 0.1$ e, em comparação com o $\lambda = 0.5$ zerou menos coeficientes, o que é esperado. As variáveis que indicam ocorrência de caminhão parado, atropelamento e acidentes com carga foram removidas do modelo. Con exceção de atropelamento, as outras variáveis possuem poucas ocorrências no banco de dados, sendo coerente a remoção delas.
+Observa-se que o método de cross-validation escolheu o $\lambda = 0.1$ e, em comparação com o $\lambda = 0.5$ zerou menos coeficientes, o que é esperado, pois quanto maior o $\lambda$, mais variáveis serão zeradas, como indicado no gráfico abaixo. 
+
+```{r}
+res <- glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = FALSE)
+plot(res, xvar = "lambda")
+legend("bottomright", lwd = 1, col = 1:6, legend = colnames(X), cex = .7)
+```
+As variáveis que indicam ocorrência de caminhão parado, atropelamento e acidentes com carga foram removidas do modelo com o $\lambda$ menor. Com exceção de atropelamento, as outras variáveis possuem poucas ocorrências no banco de dados, sendo coerente a remoção delas.
+Com o $\lambda =0.5$, apenas as variáveis que indicam veículos de bombeiros, semáforo desligado, alagamento, erro na rede de ônibus elétrico e falta de luz foram considerados. 
 
 ```{r}
 y_hat_cv = predict(fit.LASSO.CV, X)
@@ -718,7 +726,6 @@ y_hat = ts(cbind(y,  y_hat_cv, y_hat_05))
 colnames(y_hat) = c("real", "cv", "fixed 0.5")
 df <- data.frame(y_hat)
 df$date <- as.numeric(row.names(df))
-
 
 df_gathered = df %>%
   gather(key = "variable", value = "value", -date)
@@ -739,7 +746,66 @@ O modelo com o $\lambda = 0.1$ obteve um melhor ajuste na predição.
 
 #### AdaLasso
 
+O método de AdaLasso introduz a ideia de adicionar pesos na penalização, de forma que valores altos de $\beta$ estimados recebem pesos menores e, consequentemente menores penalizações do que valores baixos de $\beta$. 
 
+$$
+\hat{\beta}_{adaLASSO} = \arg \min_{\beta_0, \dots, \beta_k}  \Bigg\{\sum_{i=1}^n\left(y_i - \beta_0 - \sum_{j=1}^k\beta_j x_{ij}\right) + \lambda\sum_{j=1}^k\hat\omega_j}|\beta_j|\Bigg\}
+$$
+onde $\hat{\mathbf{\omega}}=|\hat{\beta}|^{-\gamma}$, $\gamma >0$ e $\beta$ um estimador consistente, como os obtidos por Ridge ou OLS.
+
+Implementando AdaLasso com $\lambda \simeq 0.1$ e $\gamma = 0.5$:
+```{r}
+#Calculo dos pesos utilizando os coeficientes do LASSO como Primeiro Estagio
+n = nrow(X)
+w = (abs(B.hat.LASSO.CV)+(n)^(-1/2))^(-1)
+
+# Segundo Estagio do adaLASSO
+fit.adaLASSO = glmnet(y=y,x=X, lambda = lambda, alpha = 1, penalty.factor = w)
+
+#Coeficentes do adaLASSO
+B.hat.adaLASSO = as.vector(fit.adaLASSO$beta)
+
+#Intercepto do adaLASSO
+B0.hat.adaLASSO = fit.adaLASSO$a0
+
+B.hat.adaLASSO = c(B0.hat.adaLASSO, B.hat.adaLASSO)
+names(B.hat.adaLASSO) = names(B.hat.OLS)
+
+lasso_coefs = cbind(B.hat.adaLASSO, B.hat.LASSO.CV)
+colnames(lasso_coefs) = c("adaLASSO", "LASSO")
+lasso_coefs
+```
+
+Observa-se que com este método, a variável excesso de veículos foi removida, e ocorrências com cargas foi adicionada, em comparação com o método de regressão LASSO. Em ambas, caminhões quebrados e acidentes com cargas perigosas não foram considerados.
+
+```{r}
+y_hat_lasso = predict(fit.LASSO.CV, X)
+ssr_lasso = t(y - y_hat_lasso) %*% (y - y_hat_lasso)
+
+y_hat_adalasso = predict(fit.adaLASSO, X)
+ssr_adalasso = t(y - y_hat_adalasso) %*% (y - y_hat_adalasso)
+
+y_hat = ts(cbind(y,  y_hat_lasso, y_hat_adalasso))
+colnames(y_hat) = c("real", "lasso", "adaLasso")
+df <- data.frame(y_hat)
+df$date <- as.numeric(row.names(df))
+
+df_gathered = df %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal()
+
+ssr = cbind(ssr_lasso, ssr_adalasso)
+colnames(ssr) = c("lasso", "adalasso")
+rownames(ssr) = "SSR"
+kable(ssr)
+```
+
+Para este caso, a regressão LASSO se mostrou levemente superior.
+
+#### Trees
 
 ## Notes
 
