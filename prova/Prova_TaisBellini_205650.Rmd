@@ -234,6 +234,7 @@ Para $k = 3, 4, \dots$:
 $$
 \rho_{Y_t^2}(k) = \alpha_1\rho_{Y_t^2}(k-1) + \alpha_2\rho_{Y_t^2}(k-2)
 $$
+
 ## Questão 2
 
 ### a) Encontre a distribuição assintótica do estimador de máxima versossimilhança (EMV) de $\phi_1$ no modelo $y_t = \phi_0 + \phi_1y_{t-1} + \epsilon_t$ onde $\epsilon_t \sim N(0, \sigma^2)$ Use o resultado geral para os EMV's e explicite qualquer suposição adicional necessária.
@@ -307,6 +308,78 @@ http://course.sdu.edu.cn/G2S/eWebEditor/uploadfile/20140110134920017.pdf
 
 ### b) Com uma série temporal vetorial multivariada a sua escolha (mas com dimensão mínima de 3), estime um VAR ou VEC (o que for mais adequado – faça testes),mostrando os resultados e os interpretando.
 
+
+```{r}
+library(tsDyn)
+library(vars)
+data = read.csv2("SingaporeData.csv", sep = ",")
+
+GDP = ts(data$lnGDP, start = c(2003,1,31), frequency = 4)
+CPI = ts(data$lnCPI, start = c(2003,1,31), frequency = 4)
+M4 = ts(data$lnM4, start = c(2003,1,31), frequency = 4)
+
+ds <- cbind(GDP,CPI,M4)
+
+#Selecting the Optimal Number of Lags (Recall, this is p - 1)
+
+lagselect = VARselect(ds, lag.max = 6, type = "const")
+lagselect$selection
+lagselect$criteria
+
+ctest1t <- ca.jo(ds, type = "trace", ecdet = "const", K = 4)
+summary(ctest1t)
+
+ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 4)
+summary(ctest1e)
+
+#Hence, we have one cointegrating relationship in this model
+
+######################################################################
+
+#Build the VECM Model
+
+Model1 <- VECM(ds, 4, r = 1, estim =("2OLS"))
+summary(Model1)
+
+#Diagnostic Tests
+
+#Need to Transform VECM to VAR
+
+Model1VAR <- vec2var(ctest1t, r = 1)
+
+#Serial Correlation
+
+Serial1 <- serial.test(Model1VAR, lags.pt = 5, type = "PT.asymptotic")
+Serial1
+
+#ARCH Effects
+
+Arch1 <- arch.test(Model1VAR, lags.multi = 15, multivariate.only = TRUE)
+Arch1
+
+#Normality of Residuals
+
+Norm1 <- normality.test(Model1VAR, multivariate.only = TRUE)
+Norm1
+
+#Impulse Response Functions
+
+M3irf <- irf(Model1VAR, impulse = "GDP", response = "M4", n.ahead = 20, boot = TRUE)
+plot(M3irf, ylab = "M3", main = "GDP's shock to M3")
+
+CPIirf <- irf(Model1VAR, impulse = "GDP", response = "CPI", n.ahead = 20, boot = TRUE)
+plot(CPIirf, ylab = "CPI", main = "GDP's shock to CPI")
+
+GDPirf <- irf(Model1VAR, impulse = "GDP", response = "GDP", n.ahead = 20, boot = TRUE)
+plot(GDPirf, ylab = "GDP", main = "GDP's shock to GDP")
+
+#Variance Decomposition
+
+FEVD1 <- fevd(Model1VAR, n.ahead = 10)
+plot(FEVD1)
+
+```
+
 Para esta questão, será usado um banco de dados de 1462 observações que mede o clima diário da cidade de Delhi, na Índia, no período de primeiro de Janeiro de 2013 a 24 de Abril de 2017 medindo os seguintes parâmetros: temperatura média, umidade, velocidade do vento e pressão média do ar. 
 
 ```{r, echo = F, include = F}
@@ -353,13 +426,15 @@ pacf(humidity)
 pacf(wind)
 pacf(pressure)
 
+```
 
+Nota-se que as variáveis média de temperatura, umidade e pressão do ar parecem ter um componente de sazonalidade.
+
+```{r, warning = F}
 t = adf.test(temp)
-t = adf.test(diff(temp))
 h = adf.test(humidity)
 w = adf.test(wind)
 p = adf.test(pressure)
-p = adf.test(diff(pressure))
 
 adf_pvalues = c(t$p.value, h$p.value, w$p.value, p$p.value)
 names(adf_pvalues) = c("Temp", "Umidade", "Vento", "Pressao")
@@ -367,81 +442,51 @@ paste("P-Value do teste ADF")
 adf_pvalues
 ```
 
-Observamos que apenas a série da temperatura média possui p-valor > 0.05, mas ela se torna estacionária ao tomar uma diferença. Assim, utilizaremos esta variável com uma diferença para modelar o VAR.
+Observamos que apenas a série da valocidade do vendo possui p-valor < 0.01. Assim, utilizaremos as demais variáveis com uma diferença para modelar o VAR:
 
+```{r, warning = F}
+temp.diff= diff(temp, differences = 1)
+plot(temp.diff)
 
+humidity.diff = diff(humidity, differences = 1)
+plot(humidity.diff)
 
-```{r}
-autoplot(cbind(temp, humidity, wind, scale(pressure)))
+pressure.diff = diff(pressure, differences = 1)
+plot(pressure.diff)
 
-ts_data_I = cbind(diff(temp), humidity, wind, diff(pressure))
-jo = ca.jo(ts_data_I)
-summary(jo)
-ts_data_I = ts_data_I[-1,]
-
-fit = lm(diff(temp)~diff(pressure))
-summary(fit)
-plot(residuals(fit))
-
-VARselect(ts_data_I, lag.max = 40, type="const")
-
-model = VAR(ts_data_I, p=1, type="const")
-summary(model)
-
-serial_model = serial.test(model, lags.pt = 15)
-serial_model
-
-arch.test(model, lags.multi = 15, multivariate.only = T)
-
-normality.test(model, multivariate.only = T)
-plot(stability(model))
-
-
-```
-
-Estimação
-
-```{r}
-library(tsDyn)
-model = VECM(ts_data[,-1], 3, r = 2, estim = "ML")
-summary(model)
-```
-
-
-Diagnostico
-
-```{r}
-varmod = vec2var(jo, r = 2)
-
-ser = serial.test(varmod, lags.pt = 4)
-ser
-
-arch.test(varmod, lags.multi = 15, multivariate.only = T)
-
-normality.test(varmod, multivariate.only = T)
-```
-
-
-```{r}
-```
-
-
-```{r, warning=F}
-par(mfrow=c(2,2))
-for(i in 2:5){
-  acf(ts_data[,i])
-}
-
-t = adf.test(temp)
-t = adf.test(diff(temp))
-h = adf.test(humidity)
+t = adf.test(temp.diff)
+h = adf.test(humidity.diff)
 w = adf.test(wind)
-p = adf.test(pressure)
+p = adf.test(pressure.diff)
 
 adf_pvalues = c(t$p.value, h$p.value, w$p.value, p$p.value)
 names(adf_pvalues) = c("Temp", "Umidade", "Vento", "Pressao")
+paste("P-Value do teste ADF")
 adf_pvalues
 ```
+
+Vamos remover as últimas 7 observações para avaliar o ajuste do modelo depois:
+
+```{r}
+ts_data_diff = ts(cbind(temp.diff, humidity.diff, pressure.diff))
+test = ts_data_diff[1:7,]
+train = ts_data_diff[8:nrow(ts_data_diff),]
+
+VARselect(train, lag.max = 20)
+
+ca = ca.jo(ts_data_diff)
+summary(ca)
+```
+
+```{r}
+model = VAR(train, p=6, type = "trend")
+summary(model)
+summary(model$varresult$wind)$adj.r.squared
+
+serial.test(model, lags.pt = 15, type = "PT.asymptotic")
+
+```
+
 
 Observa-se que apenas 2 variáveis são séries estacionárias. Portanto, vamos testar a co-integração através do método dos autovalores de Johansen. 
 
@@ -466,37 +511,72 @@ adf.test(temperature)
 ```
 
 
-
-
-
 ## Questão 4: Utilizando uma série temporal a sua escolha (mas com pelo menos 10 séries temporais como covariáveis e pelo menos 3 lags de cada uma delas, ou seja, pelo menos 30 covariáveis), implemente, para estimação e seleção, todos métodos vistos em aula sobre machine/statistical learning: ridge, lasso, adalasso, tress (baging, random forest e boosting). Mostre os resultados e os interprete.
 
-Para esta questão, será utilizado um banco de dados com dados do comportamento do tráfego de veículos em São Paulo. O banco tem observações de um período de 14 de Dezembro de 2009 até 18 de Dezembro de 2009 (segunda-feira a sexta-feira), das 7:00 até as 20:00 de 30 em 30 minutos. Os dados contam com a observação de 16 variáveis que contam o número de ocorrências das seguintes situações: ônibus parados, caminhões quebrados, excesso de veículos, acidentes com vítimas, atropelamentos, veículos de bombeiros, ocorrências com carga, acidentes com cargas perigosas, falta de luz, incêndios, alagamentos, manifestações, erro na rede de ônibus elétricos, árvore na pista, semáforo desligado e semáforo intermitente. Ainda, possui a variável lentidão do tráfego, em porcentagem.
+Para esta questão, será utilizado um banco de dados utilizado no paper https://data.mendeley.com/datasets/byjnr4kz5v/3 que contém recursos de várias categorias de indicadores técnicos, contratos futuros, preços de commodities, índices importantes de mercados em todo o mundo, preços das principais empresas no mercado dos EUA e taxas de títulos do tesouro. Foram selecionados 10 ativos financeiros: Oil, Gold, JPM, AMZN, AAPL, GE, DJI, NYSE, EUR, DOLLAR e o preço de fechamento (Close) do índice S&P.
 
-```{r}
+```{r, warning=F, echo=F, include=F}
 library(ggplot2)
 library(tidyr)
-library(dplyr)
+
 ```
 
 
 ```{r}
-data = read.csv2("urban_traffic_sp.csv", sep = ";")
-colnames(data) = c("Hour", "ImmobilizedBus", "BrokenTruck", "VehicleExcess", 
-                   "AccidentVictim", "RunningOver" , "FireVehicles", 
-                   "OccurrenceFreight", "IncidentDangerousFreight",
-                   "LackOfElectricity", "Fire", "Flooding", "Manifestations",
-                   "DefectNetworkTrolleybuses", "TreeOnTheRoad", "SemaphoreOff",
-                   "IntermittentSemaphore", "SlownessinTraffic(%)")
+data = read.csv2("Processed_S&P.csv", sep = ",")
 
-ts_data = ts(data)
+oil = ts(data$Oil)
+gold = ts(data$Gold)
+jpm = ts(data$JPM)
+close = ts(data$Close)
+amzn = ts(data$AMZN)
+ge = ts(data$GE)
+dji = ts(data$DJI)
+nyse = ts(data$NYSE)
+eur = ts(data$EUR)
+aapl = ts(data$AAPL)
+dollar = ts(data$Dollar.index)
 
-plot(ts_data[,c(18, 2:4)], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
-plot(ts_data[,5:8], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
-plot(ts_data[,9:12], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
-plot(ts_data[,13:15], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
-plot(ts_data[,16:17], main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
+df = data.frame(close, oil, gold, jpm, amzn, aapl, ge, dji, nyse, eur, dollar)
+lines = nrow(df)
+df = within(df, {
+  close1 = c(rep(NA,1), close[-seq(from = lines, by = -1, length.out = 1)])
+  close2 = c(rep(NA,2), close[-seq(from = lines, by = -1, length.out = 2)])
+  close3 = c(rep(NA,3), close[-seq(from = lines, by = -1, length.out = 3)])
+  oil1 = c(rep(NA,1), oil[-seq(from = lines, by = -1, length.out = 1)])
+  oil2 = c(rep(NA,2), oil[-seq(from = lines, by = -1, length.out = 2)])
+  oil3 = c(rep(NA,3), oil[-seq(from = lines, by = -1, length.out = 3)])
+  gold1 = c(rep(NA,1), gold[-seq(from = lines, by = -1, length.out = 1)])
+  gold2 = c(rep(NA,2), gold[-seq(from = lines, by = -1, length.out = 2)])
+  gold3 = c(rep(NA,3), gold[-seq(from = lines, by = -1, length.out = 3)])
+  jpm1 = c(rep(NA,1), jpm[-seq(from = lines, by = -1, length.out = 1)])
+  jpm2 = c(rep(NA,2), jpm[-seq(from = lines, by = -1, length.out = 2)])
+  jpm3 = c(rep(NA,3), jpm[-seq(from = lines, by = -1, length.out = 3)])
+  amzn1 = c(rep(NA,1), amzn[-seq(from = lines, by = -1, length.out = 1)])
+  amzn2 = c(rep(NA,2), amzn[-seq(from = lines, by = -1, length.out = 2)])
+  amzn3 = c(rep(NA,3), amzn[-seq(from = lines, by = -1, length.out = 3)])
+  aapl1 = c(rep(NA,1), aapl[-seq(from = lines, by = -1, length.out = 1)])
+  aapl2 = c(rep(NA,2), aapl[-seq(from = lines, by = -1, length.out = 2)])
+  aapl3 = c(rep(NA,3), aapl[-seq(from = lines, by = -1, length.out = 3)])
+  ge1 = c(rep(NA,1), ge[-seq(from = lines, by = -1, length.out = 1)])
+  ge2 = c(rep(NA,2), ge[-seq(from = lines, by = -1, length.out = 2)])
+  ge3 = c(rep(NA,3), ge[-seq(from = lines, by = -1, length.out = 3)])
+  dji1 = c(rep(NA,1), dji[-seq(from = lines, by = -1, length.out = 1)])
+  dji2 = c(rep(NA,2), dji[-seq(from = lines, by = -1, length.out = 2)])
+  dji3 = c(rep(NA,3), dji[-seq(from = lines, by = -1, length.out = 3)])
+  nyse1 = c(rep(NA,1), nyse[-seq(from = lines, by = -1, length.out = 1)])
+  nyse2 = c(rep(NA,2), nyse[-seq(from = lines, by = -1, length.out = 2)])
+  nyse3 = c(rep(NA,3), nyse[-seq(from = lines, by = -1, length.out = 3)])
+  dollar1 = c(rep(NA,1), dollar[-seq(from = lines, by = -1, length.out = 1)])
+  dollar2 = c(rep(NA,2), dollar[-seq(from = lines, by = -1, length.out = 2)])
+  dollar3 = c(rep(NA,3), dollar[-seq(from = lines, by = -1, length.out = 3)])
+  eur1 = c(rep(NA,1), eur[-seq(from = lines, by = -1, length.out = 1)])
+  eur2 = c(rep(NA,2), eur[-seq(from = lines, by = -1, length.out = 2)])
+  eur3 = c(rep(NA,3), eur[-seq(from = lines, by = -1, length.out = 3)])
+})
 
+df = df[-c(1:4),]
+head(df)
 ```
 
 #### Ridge
@@ -511,116 +591,68 @@ O resultado são coeficientes com valores menores do que uma regressão de míni
 
 Vamos determinar a variável resposta e centralizá-la, já que o algoritmo de regressão Ridge parte do pressuposto que os preditores estão padronizados e resposta centralizada. As covariáveis do banco já estão na mesma unidade, não sendo necessária a padronização.
 
-```{r, echo=F, warning=F, include=F}
-library(glmnet)
-library(knitr)
-library(psych) 
-```
-
 ```{r}
 # variavel resposta:
-y = scale(data$`SlownessinTraffic(%)`, center = T, scale = F)
-
+y = df$close
+y = scale(y, center = T)
 #covariaveis
-X = as.matrix(data[,-c(1,18)])
+X = as.matrix(df[,-1])
+X = scale(X)
 ```
 
 
 Vamos observar como fica o ajuste em uma regressão de mínimos quadrados tradicional:
 ```{r}
+library(knitr)
 #OLS
 fit.OLS = lm(formula = y~X)
 B.hat.OLS = fit.OLS$coefficients
 kable(B.hat.OLS)
 ```
 
-Agora para executar a regressão ridge, vamos escolher o $\lambda$ ótimo a partir dos critérios AIC e BIC:
-```{r}
-lambdas_to_try = 10^seq(-2, 3, length.out = 100)
-aic <- c()
-bic <- c()
-
-for (lambda in seq(lambdas_to_try)) {
-  # Não padronizamos os dados pois estão na mesma unidade (num de ocorrências)
-  model <- glmnet(X, y, alpha = 0, lambda = lambdas_to_try[lambda], standardize = F)
-  
-  # Coeficientes e residuos (sem o intercepto)
-  betas <- as.vector((as.matrix(coef(model))[-1, ]))
-  resid <- y - (X %*% betas)
-  
-  # Computando AIC e BIC
-  ld <- lambdas_to_try[lambda] * diag(ncol(X))
-  H <- X %*% solve(t(X) %*% X + ld) %*% t(X)
-  df <- tr(H)
-  
-  aic[lambda] <- nrow(X) * log(t(resid) %*% resid) + 2 * df
-  bic[lambda] <- nrow(X) * log(t(resid) %*% resid) + 2 * df * log(nrow(X))
-}
-
-# Plot information criteria against tried values of lambdas
-plot(log(lambdas_to_try), aic, col = "orange", type = "l", ylab = "Information Criterion",
-     ylim = c(1020, 1158))
-lines(log(lambdas_to_try), bic, col = "skyblue3")
-legend("bottomright", lwd = 1, col = c("orange", "skyblue3"), legend = c("AIC", "BIC"))
-```
 
 Executando a regressão ridge com lambda fixo, e os lambdas escolhidos por AIC, BIC e cross-validation:
 
 ``` {r}
-lambda_aic = lambdas_to_try[which.min(aic)]
-lambda_bic = lambdas_to_try[which.min(bic)]
-lambda_cv = cv.glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = F, nfolds = 10)$lambda.min
-lambda_fixed = 5
+lambda_cv = cv.glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = T, nfolds = 10)$lambda.min
+lambda_fixed = 0.1
 
-#Ridge Regression - alpha = 0 - AIC
-fit.RR.AIC = glmnet(y=y,x=X, lambda=lambda_aic, alpha = 0)
-fit.RR.BIC = glmnet(y=y,x=X, lambda=lambda_bic, alpha = 0)
+#Ridge Regression - alpha = 0 
 fit.RR.CV = glmnet(y=y,x=X, lambda=lambda_cv, alpha = 0)
 fit.RR.Fixed = glmnet(y=y,x=X, lambda=lambda_fixed, alpha = 0)
 
 #Coeficientes do RR
-B.hat.RR.AIC = as.vector(fit.RR.AIC$beta)
-B.hat.RR.BIC = as.vector(fit.RR.BIC$beta)
 B.hat.RR.CV = as.vector(fit.RR.CV$beta)
 B.hat.RR.Fixed = as.vector(fit.RR.Fixed$beta)
 
 #Intercepto do RR
-B0.hat.RR.AIC = fit.RR.AIC$a0
-B0.hat.RR.BIC = fit.RR.BIC$a0
 B0.hat.RR.CV = fit.RR.CV$a0
 B0.hat.RR.Fixed = fit.RR.Fixed$a0
 
-B.hat.RR.AIC = c(B0.hat.RR.AIC, B.hat.RR.AIC)
-B.hat.RR.BIC = c(B0.hat.RR.BIC, B.hat.RR.BIC)
 B.hat.RR.CV = c(B0.hat.RR.CV, B.hat.RR.CV)
 B.hat.RR.Fixed = c(B0.hat.RR.Fixed, B.hat.RR.Fixed)
-names(B.hat.RR.AIC) = names(B.hat.RR.BIC) = names(B.hat.RR.CV) = names(B.hat.RR.Fixed) = names(B.hat.OLS)
+names(B.hat.RR.CV) = names(B.hat.RR.Fixed) = names(B.hat.OLS)
 
-lambdas = cbind(0, lambda_aic, lambda_bic, lambda_cv, lambda_fixed)
-coefs = cbind(B.hat.OLS, B.hat.RR.AIC, B.hat.RR.BIC, B.hat.RR.CV, B.hat.RR.Fixed)
+lambdas = cbind(0, lambda_cv, lambda_fixed)
+coefs = cbind(B.hat.OLS, B.hat.RR.CV, B.hat.RR.Fixed)
 rownames(lambdas) = "Lambda value"
-rbind(coefs, lambdas)
+kable(rbind(coefs, lambdas))
 
 ```
 
-Conseguimos observar que o $\lambda$ escolhido pelo critério AIC é bem pequeno (0.01), resultando em valores muito similares da regressão tradicional. Já o $\lambda$ escolhido pelo critério BIC é bem grande, resultando em coeficientes muito pequenos. Os $\lambda$ escolhidos por cross-validation e o fixado no valor 5 reduziram moderadamente os coeficientes. Estes resultados eram esperados, já que o valor dos coeficientes diminui a medida que o $\lambda$ aumenta, como observado no gráfico abaixo.
+Conseguimos observar que o $\lambda$ escolhidos por cross-validation, 0.01, reduziu os coeficientes  e o fixado no valor 5 reduziram moderadamente os coeficientes. Estes resultados eram esperados, já que o valor dos coeficientes diminui a medida que o $\lambda$ aumenta, como observado no gráfico abaixo.
 
 
 ```{r}
-res <- glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = FALSE)
+res <- glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = T)
 plot(res, xvar = "lambda")
 ```
 Agora, vamos avaliar o ajuste do modelo obtido de acordo com cada lambda escolhido:
 
 ```{r}
+library(tidyverse)
 y_hat_ols = predict(fit.OLS)
 ssr_ols = t(y - y_hat_ols) %*% (y - y_hat_ols)
-
-y_hat_aic = predict(fit.RR.AIC, X)
-ssr_aic = t(y - y_hat_aic) %*% (y - y_hat_aic)
-
-y_hat_bic = predict(fit.RR.BIC, X)
-ssr_bic = t(y - y_hat_bic) %*% (y - y_hat_bic)
 
 y_hat_cv = predict(fit.RR.CV, X)
 ssr_cv = t(y - y_hat_cv) %*% (y - y_hat_cv)
@@ -629,8 +661,8 @@ y_hat_fixed = predict(fit.RR.Fixed, X)
 ssr_fixed = t(y - y_hat_fixed) %*% (y - y_hat_fixed)
 
 
-y_hat = ts(cbind(y,  y_hat_ols, y_hat_aic, y_hat_bic, y_hat_cv, y_hat_fixed))
-colnames(y_hat) = c("real", "ols", "aic", "bic", "cv", "fixed")
+y_hat = ts(cbind(y,  y_hat_ols, y_hat_cv, y_hat_fixed))
+colnames(y_hat) = c("real", "ols", "cv", "fixed")
 df <- data.frame(y_hat)
 df$date <- as.numeric(row.names(df))
 
@@ -642,24 +674,23 @@ ggplot(df_gathered, aes(x = date, y = value)) +
   geom_line(aes(color = variable), size = 1) +
   theme_minimal()
 
-ssr = cbind(ssr_ols,ssr_aic, ssr_bic, ssr_cv, ssr_fixed)
-colnames(ssr) = c("ols", "aic", "bic", "cv", "fixed")
+ssr = cbind(ssr_ols, ssr_cv, ssr_fixed)
+colnames(ssr) = c("ols", "cv", "fixed")
 rownames(ssr) = "SSR"
 kable(ssr)
 ```
 
 ```{r}
-df_gathered = df[,c("date", "real", "cv", "fixed" )] %>%
+df_gathered = df[,c("date", "real", "cv", "ols" )] %>%
   gather(key = "variable", value = "value", -date)
 
 ggplot(df_gathered, aes(x = date, y = value)) + 
   geom_line(aes(color = variable), size = 1) +
   theme_minimal()
-
 ```
 
 
-Observa-se que o método sem penalização e o método com o lambda bem pequeno (escolhido via AIC) resulta em menos resíduos e ajusta melhor o modelo, o que é esperado, já que praticamente não exerce nenhuma penalização. No outro extremo, temos o lambda muito grande, escolhido via BIC, que ajusta muito mal os dados pois praticamente zera os coeficiente. Através de cross-validation e um lambda arbitrário, se obtém um ajuste um pouco pior mas com _shrinkage_ dos coeficientes, que era o nosso objetivo, indicando que um lambda entre 0.1 e 5 seja mais adequado para este modelo.
+Observa-se que os métodos sem penalização resultam em menos resíduos e ajusta melhor o modelo, o que é esperado, já que não exerce nenhuma restrição ao ajuste. Percebemos que o lambda maior faz um ajuste menos adequado, já que exerce maior penalização, restringindo o valor does coeficientes. 
 
 
 #### Lasso
@@ -672,58 +703,53 @@ $$
 
 Como resultado, temos coeficientes que são totalmente zerados, permitindo uma seleção de variáveis. 
 
-Testando com os valores de $\lambda$ fixado 0.5, 0.1 e escolhido por cross-validated:
+Testando com os valores de $\lambda$ fixado em 0.1 e escolhido por cross-validated:
 ```{r}
 lasso_cv <- cv.glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = F, nfolds = 10)
 lambda <- lasso_cv$lambda.min
 
 fit.LASSO.CV = glmnet(y=y,x=X, lambda = lambda, alpha = 1)
 fit.LASSO.Fixed01 = glmnet(y=y,x=X, lambda = 0.1, alpha = 1)
-fit.LASSO.Fixed05 = glmnet(y=y,x=X, lambda = 0.5, alpha = 1)
 
 
 #Coeficientes do LASSO
 B.hat.LASSO.CV = as.vector(fit.LASSO.CV$beta)
 B.hat.LASSO.Fixed01 = as.vector(fit.LASSO.Fixed01$beta)
-B.hat.LASSO.Fixed05 = as.vector(fit.LASSO.Fixed05$beta)
 
 
 #Intercepto do LASSO
 B0.hat.LASSO.CV = fit.LASSO.CV$a0
 B0.hat.LASSO.Fixed01 = fit.LASSO.Fixed01$a0
-B0.hat.LASSO.Fixed05 = fit.LASSO.Fixed05$a0
 
 B.hat.LASSO.CV = c(B0.hat.LASSO.CV, B.hat.LASSO.CV)
 B.hat.LASSO.Fixed01 = c(B0.hat.LASSO.Fixed01, B.hat.LASSO.Fixed01)
-B.hat.LASSO.Fixed05 = c(B0.hat.LASSO.Fixed05, B.hat.LASSO.Fixed05)
 B.hat.RR.Fixed = c(B0.hat.RR.Fixed, B.hat.RR.Fixed)
-names(B.hat.LASSO.CV) = names(B.hat.LASSO.Fixed01) = names(B.hat.LASSO.Fixed05) = names(B.hat.OLS)
+names(B.hat.LASSO.CV) = names(B.hat.LASSO.Fixed01) = names(B.hat.OLS)
 
-lambdas = cbind(lambda, 0.1, 0.5)
-coefs = cbind(B.hat.LASSO.CV, B.hat.LASSO.Fixed01, B.hat.LASSO.Fixed05)
+lambdas = cbind(lambda, 0.1)
+coefs = cbind(B.hat.LASSO.CV, B.hat.LASSO.Fixed01)
 rownames(lambdas) = "Lambda value"
-rbind(coefs, lambdas)
+kable(rbind(coefs, lambdas))
 ```
 
-Observa-se que o método de cross-validation escolheu o $\lambda = 0.1$ e, em comparação com o $\lambda = 0.5$ zerou menos coeficientes, o que é esperado, pois quanto maior o $\lambda$, mais variáveis serão zeradas, como indicado no gráfico abaixo. 
+Observa-se que o método de cross-validation escolheu o $\lambda = 0.01$ e, em comparação com o $\lambda = 0.1$ zerou menos coeficientes, o que é esperado, pois quanto maior o $\lambda$, mais variáveis serão zeradas, como indicado no gráfico abaixo. 
 
 ```{r}
 res <- glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = FALSE)
 plot(res, xvar = "lambda")
 legend("bottomright", lwd = 1, col = 1:6, legend = colnames(X), cex = .7)
 ```
-As variáveis que indicam ocorrência de caminhão parado, atropelamento e acidentes com carga foram removidas do modelo com o $\lambda$ menor. Com exceção de atropelamento, as outras variáveis possuem poucas ocorrências no banco de dados, sendo coerente a remoção delas.
-Com o $\lambda =0.5$, apenas as variáveis que indicam veículos de bombeiros, semáforo desligado, alagamento, erro na rede de ônibus elétrico e falta de luz foram considerados. 
+As variáveis que indicam o valor de fechamento do índice S&P com lag = 1 e lag = 2 foram as mais significativas para a predição do valor de fechamento do dia atual. Com o $lambda = 0.1$, apenas estas variáveis formaram o modelo de final. Com o $\lambda = 0.01$, foram incluídas também as variáveis AMZN, AAPL, JPM, DJI e NYSE, sendo as duas últimas com coeficientes maiores, indicando que o valor dos outros índices possuem mais interferência no valor de fechamento do índice S&P do que ativos de empresas. 
 
 ```{r}
 y_hat_cv = predict(fit.LASSO.CV, X)
 ssr_cv = t(y - y_hat_cv) %*% (y - y_hat_cv)
 
-y_hat_05 = predict(fit.LASSO.Fixed05, X)
-ssr_05 = t(y - y_hat_05) %*% (y - y_hat_05)
+y_hat_01 = predict(fit.LASSO.Fixed01, X)
+ssr_01 = t(y - y_hat_01) %*% (y - y_hat_01)
 
-y_hat = ts(cbind(y,  y_hat_cv, y_hat_05))
-colnames(y_hat) = c("real", "cv", "fixed 0.5")
+y_hat = ts(cbind(y,  y_hat_cv, y_hat_01))
+colnames(y_hat) = c("real", "cv", "fixed 0.1")
 df <- data.frame(y_hat)
 df$date <- as.numeric(row.names(df))
 
@@ -734,14 +760,14 @@ ggplot(df_gathered, aes(x = date, y = value)) +
   geom_line(aes(color = variable), size = 1) +
   theme_minimal()
 
-ssr = cbind(ssr_cv, ssr_05)
-colnames(ssr) = c("cv", "fixed 0.5")
+ssr = cbind(ssr_cv, ssr_01)
+colnames(ssr) = c("cv", "fixed 0.1")
 rownames(ssr) = "SSR"
 kable(ssr)
 
 ```
 
-O modelo com o $\lambda = 0.1$ obteve um melhor ajuste na predição.
+O modelo com o $\lambda = 0.01$ obteve um melhor ajuste na predição.
 
 
 #### AdaLasso
@@ -753,7 +779,7 @@ $$
 $$
 onde $\hat{\mathbf{\omega}}=|\hat{\beta}|^{-\gamma}$, $\gamma >0$ e $\beta$ um estimador consistente, como os obtidos por Ridge ou OLS.
 
-Implementando AdaLasso com $\lambda \simeq 0.1$ e $\gamma = 0.5$:
+Implementando AdaLasso com $\lambda \simeq 0.01$ e $\gamma = 0.5$:
 ```{r}
 #Calculo dos pesos utilizando os coeficientes do LASSO como Primeiro Estagio
 n = nrow(X)
@@ -776,7 +802,7 @@ colnames(lasso_coefs) = c("adaLASSO", "LASSO")
 lasso_coefs
 ```
 
-Observa-se que com este método, a variável excesso de veículos foi removida, e ocorrências com cargas foi adicionada, em comparação com o método de regressão LASSO. Em ambas, caminhões quebrados e acidentes com cargas perigosas não foram considerados.
+Observa-se que com este método, a variável que indica o fechamento do índice S&P com lag = 2 foi removida, e o valor do ativo GE foi adicionad, em comparação com o método de regressão LASSO. 
 
 ```{r}
 y_hat_lasso = predict(fit.LASSO.CV, X)
@@ -803,9 +829,81 @@ rownames(ssr) = "SSR"
 kable(ssr)
 ```
 
-Para este caso, a regressão LASSO se mostrou levemente superior.
+Para este caso, a regressão adaLASSO se mostrou levemente superior.
 
 #### Trees
+
+```{r, include = F, echo=F}
+library(dplyr)       # for data wrangling
+library(ggplot2)     # for awesome plotting
+library(doParallel)  # for parallel backend to foreach
+library(foreach)     # for parallel processing with for loops
+
+# Modeling packages
+library(caret)       # for general model fitting
+library(rpart)       # for fitting decision trees
+library(ipred)       # for fitting bagged decision trees
+library(randomForest)
+library(rpart.plot)  # for plotting decision trees
+library(vip)         # for feature importance
+library(pdp)         # for feature effects
+```
+
+```{r}
+tree <- rpart(
+  formula = `SlownessinTraffic(%)` ~ .,
+  data    = data[,-1],
+  method  = "anova",
+  model = T
+)
+```
+
+```{r}
+rpart.plot(tree)
+```
+
+```{r}
+vip(tree, num_features = 40, bar = FALSE)
+```
+
+
+
+##### Bagging
+
+
+```{r}
+bag <- bagging(
+  formula = `SlownessinTraffic(%)` ~ .,
+  data = data[,-1],
+  nbagg = 100,  
+  coob = TRUE,
+  control = rpart.control(minsplit = 2, cp = 0),
+  model = T
+)
+bag
+```
+
+
+##### Random Forest
+
+```{r}
+library(ranger)   # a c++ implementation of random forest 
+library(h2o)      # a java-based implementation of random forest
+```
+
+
+
+
+
+```{r}
+#mincut = 5
+#minsize = 3*mincut
+#mindev = 0.01
+#control1 = tree.control(nobs=length(s), mincut = mincut, minsize = minsize, mindev = mindev)
+#Ajuste da arvore de regressao
+#tree1 = tree(formula=y~.,data = data, control=control1, subset = s)
+```
+
 
 ## Notes
 
