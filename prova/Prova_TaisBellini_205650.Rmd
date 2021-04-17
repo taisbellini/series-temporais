@@ -306,31 +306,140 @@ http://course.sdu.edu.cn/G2S/eWebEditor/uploadfile/20140110134920017.pdf
 
 ## Questão 3
 
+### a) Mostre que estimar um VAR(p) padrão de dimensão n (não estrutural) por MV é equivalente a estimar por MQO linha por linha (das n linhas) do modelo.
+
+Dado um modelo multivariado:
+
+\begin{equation}
+\mathbf{y_t} = \mathbf{c} + \Phi_1\mathbf{y_{t-1}} + \dots + \Phi_p\mathbf{y_{t-p}} + \mathbf{\epsilon_t}
+\label{eq:var}
+\end{equation}
+
+onde $\mathbf{y_t} = \begin{bmatrix} y_{1t} \\ \vdots \\ y_{nt} \end{bmatrix}$ é um vetor contendo $\mathbf{y_t}$ para cada uma das n variáveis, $\mathbf{c} = \begin{bmatrix} c_1 \\ \vdots \\ c_n \end{bmatrix}$ é um vetor de constantes, $\Phi_j = \begin{bmatrix} \phi_{11}^{(j)} & \dots & \phi_{1n}^{(j)} \\ \vdots \\ \phi_{n1}^{(j)} & \dots & \phi_{nn}^{(j)} \end{bmatrix}$ é uma matriz com os parâmetros para todas as variáveis com aquela defasagem e $\mathbf{\epsilon_t} \sim N(\mathbf{0}, \Omega)$ é um vetor de ruídos. 
+
+Dessa forma, temos um sistema de equações no qual a j-ésima linha se dá por: 
+
+\begin{equation}
+\begin{aligned}
+y_{jt} = c_j & + \phi_{j1}^{(1)}y_{1,t-1} + \dots + \phi_{jn}^{(1)}y_{n,t-1} +
+             & + \phi_{j1}^{(2)}y_{1,t-2} + \dots + \phi_{jn}^{(2)}y_{n,t-2} + \dots 
+             & + \phi_{j1}^{(p)}y_{1,t-p} + \dots + \phi_{jn}^{(p)}y_{n,t-p} + \epsilon_{jt} 
+\label{eq:varj}
+\end{aligned}
+\end{equation}
+
+Dado o sistema da equação \ref{eq:var}, consideramos o vetor $\mathbf{c_t} = \mathbf{c} + \Phi_1\mathbf{y_{t-1}} + \dots + \Phi_p\mathbf{y_{t-p}}$, onde $y_t|\Im_{t-1} \sim NM(\mathbf{c_t}, \Omega)$, e o vetor $\mathbf{\theta}  = (\mathbf{c}, \Phi_1, \dots, \Phi_p, \Omega)$. 
+O estimador de máxima verossimilhança desde sistema, como visto em aula, é definido da seguinte forma:
+
+\begin{equation}
+L(\mathbf{\theta}) = \prod_{t=1}^{T}f(\mathbf{y_t}|\Im_{t-1};\theta) = (2\pi)^{-Tn/2}|\Omega^{-1}|exp\{-\frac{1}{2}\sum_{t-1}^T(\mathbf{y_t}-\mathbf{c_t})^\intercal\Omenga^{-1}(\mathbf{y_t}-\mathbf{c_t})}
+\label{eq:lvar}
+\end{equation}
+
+Denotamos, ainda: 
+$$
+\mathbf{c_t} = \Pi^\intercal\mathbf{x_t}
+$$
+onde $\Pi^\intercal = (\mathbf{c}, \Phi_1, \dots, \Phi_p)$ e 
+$$
+\mathbf{x_t} = \begin{bmatrix} 1 \\ \mathbf{y_{t-1}} \\ \vdots \\ \mathbf{y_{t-p}} \end{bmatrix}
+$$
+Fazendo a derivação em relação a $\Pi$ do logaritmo natural de \ref{eq:lvar} para obter o estimador de MV dos parâmetros do modelo, obtemos o seguinte resultado:
+$$
+\hat{\Pi}^\intercal = \frac{\left[\sum_{t=1}^T\mathbf{y_t}\mathbf{x_t}^\intercal\right]}{\left[\sum_{t=1}^T\mathbf{x_t}\mathbf{x_t}^\intercal\right]}
+$$
+Note que a j-ésima linha de $\hat{\Pi}^\intercal$ é definida por: 
+
+\begin{equation}
+\hat{\pi_j}^\intercal = \frac{\left[\sum_{t=1}^Ty_{jt}\mathbf{x_t}^\intercal\right]}{\left[\sum_{t=1}^T\mathbf{x_t}\mathbf{x_t}^\intercal\right]}
+\label{eq:varmv}
+\end{equation}
+
+Ou, em sua forma vetorial: 
+
+\begin{equation}
+\hat{\pi_j}^\intercal = \frac{X^\intercal y_j}{(X^\intercal X)}
+\label{eq:varmvvet}
+\end{equation}
+
+onde 
+$$
+y_{j} = (y_{j1}, \dots, y_{jT})^\intercal
+$$
+$$
+X = \begin{bmatrix} 
+      1 & y_{1,0} & \dots & y_{n,0} \\
+      \vdots & & & \vdots \\
+      1 & y_{1,t-1} & \dots & y_{n,t-1}
+      \end{bmatrix}
+$$
+
+Agora, observe a equação da j-ésima linha em \ref{eq:varj}. Sua forma vetorial se dá por: 
+
+$$
+y_{j} = X\beta_j + \epsilon_j
+$$
+onde 
+$$
+y_{j} = (y_{j1}, \dots, y_{jT})^\intercal
+$$
+$$
+X = \begin{bmatrix} 
+      1 & y_{1,0} & \dots & y_{n,0} \\
+      \vdots & & & \vdots \\
+      1 & y_{1,t-1} & \dots & y_{n,t-1}
+      \end{bmatrix}
+$$
+$$
+\beta_j = (c_1, \phi_{j1}, \dots, \phi_{jn})^\intercal
+$$
+e
+$$
+\epsilon_j = (\epsilon_{j1}, \dots, \epsilon_{jT})^\intercal
+$$
+
+Se obtivermos o estimador de mínimos quadrados (OLS) para estimar $\beta_j$ da equação acima, temos:
+$$
+\hat{\beta_j} = \frac{X^\intercal y_j}{(X^\intercal X)}
+$$
+Que é exatamente equivalente a equação \ref{eq:varmvvet}.
+
+Para a estimação de $\Omega$, temos:
+
+$$
+\hat{\Omega} = \frac{1}{T} \sum_{t=1}^{T}\mathbf{\hat{\epsilon_t}^\intercal\hat{\epsilon_t}}
+$$
+onde
+$$
+\mathbf{\hat{\epsilon_t}} = \begin{bmatrix} \hat{\epsilon_{1t}} \\ \vdots \\ \hat{\epsilon_{nt}} \end{bmatrix}
+$$
+e $\hat{\epsilon_{jt}}$ são os resíduos do ajuste de mínimos quadrados da j-ésima equação.
+
 ### b) Com uma série temporal vetorial multivariada a sua escolha (mas com dimensão mínima de 3), estime um VAR ou VEC (o que for mais adequado – faça testes),mostrando os resultados e os interpretando.
 
 
 ```{r}
-library(tsDyn)
-library(vars)
-data = read.csv2("SingaporeData.csv", sep = ",")
+#library(tsDyn)
+#library(vars)
+#data = read.csv2("SingaporeData.csv", sep = ",")
 
-GDP = ts(data$lnGDP, start = c(2003,1,31), frequency = 4)
-CPI = ts(data$lnCPI, start = c(2003,1,31), frequency = 4)
-M4 = ts(data$lnM4, start = c(2003,1,31), frequency = 4)
+#GDP = ts(data$lnGDP, start = c(2003,1,31), frequency = 4)
+#CPI = ts(data$lnCPI, start = c(2003,1,31), frequency = 4)
+#M4 = ts(data$lnM4, start = c(2003,1,31), frequency = 4)
 
-ds <- cbind(GDP,CPI,M4)
+#ds <- cbind(GDP,CPI,M4)
 
 #Selecting the Optimal Number of Lags (Recall, this is p - 1)
 
-lagselect = VARselect(ds, lag.max = 6, type = "const")
-lagselect$selection
-lagselect$criteria
+#lagselect = VARselect(ds, lag.max = 6, type = "const")
+#lagselect$selection
+#lagselect$criteria
 
-ctest1t <- ca.jo(ds, type = "trace", ecdet = "const", K = 4)
-summary(ctest1t)
+#ctest1t <- ca.jo(ds, type = "trace", ecdet = "const", K = 4)
+#summary(ctest1t)
 
-ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 4)
-summary(ctest1e)
+#ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 4)
+#summary(ctest1e)
 
 #Hence, we have one cointegrating relationship in this model
 
@@ -338,45 +447,45 @@ summary(ctest1e)
 
 #Build the VECM Model
 
-Model1 <- VECM(ds, 4, r = 1, estim =("2OLS"))
-summary(Model1)
+#Model1 <- VECM(ds, 4, r = 1, estim =("2OLS"))
+#summary(Model1)
 
 #Diagnostic Tests
 
 #Need to Transform VECM to VAR
 
-Model1VAR <- vec2var(ctest1t, r = 1)
+#Model1VAR <- vec2var(ctest1t, r = 1)
 
 #Serial Correlation
 
-Serial1 <- serial.test(Model1VAR, lags.pt = 5, type = "PT.asymptotic")
-Serial1
+#Serial1 <- serial.test(Model1VAR, lags.pt = 5, type = "PT.asymptotic")
+#Serial1
 
 #ARCH Effects
 
-Arch1 <- arch.test(Model1VAR, lags.multi = 15, multivariate.only = TRUE)
-Arch1
+#Arch1 <- arch.test(Model1VAR, lags.multi = 15, multivariate.only = TRUE)
+#Arch1
 
 #Normality of Residuals
 
-Norm1 <- normality.test(Model1VAR, multivariate.only = TRUE)
-Norm1
+#Norm1 <- normality.test(Model1VAR, multivariate.only = TRUE)
+#Norm1
 
 #Impulse Response Functions
 
-M3irf <- irf(Model1VAR, impulse = "GDP", response = "M4", n.ahead = 20, boot = TRUE)
-plot(M3irf, ylab = "M3", main = "GDP's shock to M3")
+#M3irf <- irf(Model1VAR, impulse = "GDP", response = "M4", n.ahead = 20, boot = TRUE)
+#plot(M3irf, ylab = "M3", main = "GDP's shock to M3")
 
-CPIirf <- irf(Model1VAR, impulse = "GDP", response = "CPI", n.ahead = 20, boot = TRUE)
-plot(CPIirf, ylab = "CPI", main = "GDP's shock to CPI")
+#CPIirf <- irf(Model1VAR, impulse = "GDP", response = "CPI", n.ahead = 20, boot = TRUE)
+#plot(CPIirf, ylab = "CPI", main = "GDP's shock to CPI")
 
-GDPirf <- irf(Model1VAR, impulse = "GDP", response = "GDP", n.ahead = 20, boot = TRUE)
-plot(GDPirf, ylab = "GDP", main = "GDP's shock to GDP")
+#GDPirf <- irf(Model1VAR, impulse = "GDP", response = "GDP", n.ahead = 20, boot = TRUE)
+#plot(GDPirf, ylab = "GDP", main = "GDP's shock to GDP")
 
 #Variance Decomposition
 
-FEVD1 <- fevd(Model1VAR, n.ahead = 10)
-plot(FEVD1)
+#FEVD1 <- fevd(Model1VAR, n.ahead = 10)
+#plot(FEVD1)
 
 ```
 
@@ -479,11 +588,11 @@ summary(ca)
 ```
 
 ```{r}
-model = VAR(train, p=6, type = "trend")
-summary(model)
-summary(model$varresult$wind)$adj.r.squared
+#model = VAR(train, p=6, type = "trend")
+#summary(model)
+#summary(model$varresult$wind)$adj.r.squared
 
-serial.test(model, lags.pt = 15, type = "PT.asymptotic")
+#serial.test(model, lags.pt = 15, type = "PT.asymptotic")
 
 ```
 
@@ -525,11 +634,11 @@ library(tidyr)
 ```{r}
 data = read.csv2("Processed_S&P.csv", sep = ",")
 
-oil = ts(data$Oil)
-gold = ts(data$Gold)
-jpm = ts(data$JPM)
-close = ts(data$Close)
-amzn = ts(data$AMZN)
+oil = ts(as.numeric(data$Oil))
+gold = ts(as.numeric(data$Gold))
+jpm = ts(as.numeric(data$JPM))
+close = ts(as.numeric(data$Close))
+amzn = ts(as.numeric(data$AMZN))
 ge = ts(data$GE)
 dji = ts(data$DJI)
 nyse = ts(data$NYSE)
@@ -614,6 +723,8 @@ kable(B.hat.OLS)
 Executando a regressão ridge com lambda fixo, e os lambdas escolhidos por AIC, BIC e cross-validation:
 
 ``` {r}
+library(glmnet)
+lambdas_to_try <- 10^seq(-2, 4, length.out = 100)
 lambda_cv = cv.glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = T, nfolds = 10)$lambda.min
 lambda_fixed = 0.1
 
@@ -663,11 +774,11 @@ ssr_fixed = t(y - y_hat_fixed) %*% (y - y_hat_fixed)
 
 y_hat = ts(cbind(y,  y_hat_ols, y_hat_cv, y_hat_fixed))
 colnames(y_hat) = c("real", "ols", "cv", "fixed")
-df <- data.frame(y_hat)
-df$date <- as.numeric(row.names(df))
+df_y <- data.frame(y_hat)
+df_y$date <- as.numeric(row.names(df_y))
 
 
-df_gathered = df %>%
+df_gathered = df_y %>%
   gather(key = "variable", value = "value", -date)
 
 ggplot(df_gathered, aes(x = date, y = value)) + 
@@ -681,7 +792,7 @@ kable(ssr)
 ```
 
 ```{r}
-df_gathered = df[,c("date", "real", "cv", "ols" )] %>%
+df_gathered = df_y[,c("date", "real", "cv", "ols" )] %>%
   gather(key = "variable", value = "value", -date)
 
 ggplot(df_gathered, aes(x = date, y = value)) + 
@@ -750,10 +861,10 @@ ssr_01 = t(y - y_hat_01) %*% (y - y_hat_01)
 
 y_hat = ts(cbind(y,  y_hat_cv, y_hat_01))
 colnames(y_hat) = c("real", "cv", "fixed 0.1")
-df <- data.frame(y_hat)
-df$date <- as.numeric(row.names(df))
+df_y <- data.frame(y_hat)
+df_y$date <- as.numeric(row.names(df_y))
 
-df_gathered = df %>%
+df_gathered = df_y %>%
   gather(key = "variable", value = "value", -date)
 
 ggplot(df_gathered, aes(x = date, y = value)) + 
@@ -813,10 +924,10 @@ ssr_adalasso = t(y - y_hat_adalasso) %*% (y - y_hat_adalasso)
 
 y_hat = ts(cbind(y,  y_hat_lasso, y_hat_adalasso))
 colnames(y_hat) = c("real", "lasso", "adaLasso")
-df <- data.frame(y_hat)
-df$date <- as.numeric(row.names(df))
+df_y <- data.frame(y_hat)
+df_y$date <- as.numeric(row.names(df_y))
 
-df_gathered = df %>%
+df_gathered = df_y %>%
   gather(key = "variable", value = "value", -date)
 
 ggplot(df_gathered, aes(x = date, y = value)) + 
@@ -833,52 +944,44 @@ Para este caso, a regressão adaLASSO se mostrou levemente superior.
 
 #### Trees
 
-```{r, include = F, echo=F}
-library(dplyr)       # for data wrangling
-library(ggplot2)     # for awesome plotting
-library(doParallel)  # for parallel backend to foreach
-library(foreach)     # for parallel processing with for loops
-
-# Modeling packages
-library(caret)       # for general model fitting
-library(rpart)       # for fitting decision trees
-library(ipred)       # for fitting bagged decision trees
-library(randomForest)
-library(rpart.plot)  # for plotting decision trees
-library(vip)         # for feature importance
-library(pdp)         # for feature effects
-```
+O método de árvores de decisão consiste em recursivamente encontrar a variável que será usada para particionar os dados remanescentes de forma que a soma do quadrado dos erros entre o valor real da variável resposta e a constante predita naquele grupo é minimizado.
 
 ```{r}
+library(rpart)
 tree <- rpart(
-  formula = `SlownessinTraffic(%)` ~ .,
-  data    = data[,-1],
+  formula = `close` ~ .,
+  data    = df,
   method  = "anova",
-  model = T
+  model = F,
+  control = list(cp = 0)
 )
+plotcp(tree)
+abline(v = 8, lty = "dashed")
+tree$cptable
 ```
 
 ```{r}
+library(rpart.plot)
 rpart.plot(tree)
 ```
 
 ```{r}
+library(vip)
 vip(tree, num_features = 40, bar = FALSE)
 ```
-
-
 
 ##### Bagging
 
 
 ```{r}
+library(ipred)
 bag <- bagging(
-  formula = `SlownessinTraffic(%)` ~ .,
-  data = data[,-1],
+  formula = close ~ .,
+  data = df,
   nbagg = 100,  
   coob = TRUE,
   control = rpart.control(minsplit = 2, cp = 0),
-  model = T
+  model = F
 )
 bag
 ```
