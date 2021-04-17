@@ -3,6 +3,7 @@ title: "PPGEst - Prova EST0203 - Séries Temporais - Verão 2021"
 author: "Tais Bellini"
 date: "4/10/2021"
 output: pdf_document
+bibliography: ref.bib
 header-includes:
   - \DeclareMathOperator{\EX}{\mathbb{E}}
   - \DeclareMathOperator{\Z}{\mathbb{Z}}
@@ -417,8 +418,7 @@ e $\hat{\epsilon_{jt}}$ são os resíduos do ajuste de mínimos quadrados da j-�
 
 ### b) Com uma série temporal vetorial multivariada a sua escolha (mas com dimensão mínima de 3), estime um VAR ou VEC (o que for mais adequado – faça testes),mostrando os resultados e os interpretando.
 
-
-Para esta questão, vamos selecionar 4 variáveis do banco de dados: Gold, Dollar Index, AMZN e Close. Vamos identificar se as séries possuem relação de cointegração para determinar se devemos utilizar um VEC. Para i
+Para esta questão, será utilizado um banco de dados utilizado em @Hoseinzade2019 que contém várias categorias de indicadores do mercado financeiro, como preços de commodities, índices importantes de mercados em todo o mundo, preços das principais empresas no mercado dos EUA e taxas de títulos do tesouro. Os dados foram observados diariamente de 2010 até 2017. Foram selecionadas 3 variáveis do banco de dados: Preço final do índice S&P (Close), que contém quinhentos ativos cotados nas bolsas de NYSE ou NASDAQ, Índice do Dólar (Dollar.index) e taxa de títulos do Tesouro dos Estados Unidos(DTB4WK).
 
 ```{r}
 library(urca)
@@ -443,7 +443,7 @@ Para uma análise de séries temporais multivariadas, temos o modelo VAR, cuja f
 $$
 Y_t = \mathbf{\mu} + A_1\mathbf{Y_{t-1}} + \dots + A_p\mathbf{Y_{t-p}} + \mathbf{\epsilon_t}
 $$
-onde $\mu$ é o vetor de médias da série, $A_i$ são as matrizes dos coeficientes para cada lag e $\epsilon_t$  é vetor de erros com distribuição normal multivariada com média zero. 
+onde $\mu$ é o vetor de médias da série, $A_i$ são as matrizes dos coeficientes para cada lag e $\epsilon_t$ é vetor de erros com distribuição normal multivariada com média zero. 
 
 Para utilizá-lo, é necessário avaliar se as séries a serem trabalhadas são estacionárias:
 
@@ -471,16 +471,16 @@ paste("P-Value do teste ADF")
 adf_pvalues
 ```
 
-Nota-se que apenas a variável do Index do Dólar é estacionária. 
+Nota-se que apenas a variável do Índice do Dólar é estacionária. 
 
-Agora, precisamos verificar a existência de cointegração entre as variáveis. Faremos isto através do método dos autovalores de Johansen, que permitem o teste para mais do que duas variáveis ao mesmo tempo. Para isto, temos o modelo VEC, que faz a diferenciação das séries obtendo a seguinte forma:
+Agora, precisamos verificar a existência de cointegração entre as variáveis. Faremos isto através do método dos autovalores de Johansen, que permite o teste para mais do que duas variáveis ao mesmo tempo. Para isto, temos o modelo VEC, que faz a diferenciação das séries obtendo a seguinte forma:
 
 $$
 \Delta \mathbf{Y_t} = \mathbf{\mu} + A\mathbf{Y_{t-1}} + \Gamma_1\Delta \mathbf{Y_{t-1}} + \dots + \Gamma_p\Delta \mathbf{Y_{t-p}} + \mathbf{\epsilon_t}
 $$
-onde $\Delta \mathbf{Y_{t}} = \mathbf{Y_t} - \mathbf{Y_{t-1}}$ é o operador de diferenciação, A é a matriz de coeficientes para o primeiro lag e $\Gamma_i$ as matrizes dos coeficientes para cada lag. 
+onde $\Delta \mathbf{Y_{t}} = \mathbf{Y_t} - \mathbf{Y_{t-1}}$ é o operador de diferenciação, $A$ é a matriz de coeficientes para o primeiro lag e $\Gamma_i$ as matrizes dos coeficientes para cada lag. 
 
-O teste de Johansen verifica sequencialmente se o posto da matriz é 0, 1, 2, ... até o número de séries sendo avaliadas menos um. Se o posto da matriz A = 0, não há co-integração.
+O teste de Johansen verifica sequencialmente se o posto da matriz $A$ é 0, 1, 2, ... até o número de séries sendo avaliadas menos um. Se o posto da matriz A = 0, não há co-integração.
 
 Para realizar o teste, precisamos escolher o lag ótimo:
 
@@ -490,6 +490,7 @@ lagselect = VARselect(ds, lag.max = 20, type = "const")
 lagselect$selection
 ```
 
+O lag ótimo obtivo para o VAR é 5, portanto, para o VEC, utilizamos 4:
 
 ```{r}
 library(urca)
@@ -508,10 +509,9 @@ summary(vec_model)
 
 Observa-se pelo vetor de cointegração que o preço final do índice S&P tem uma relação negativa pequena com o índice do Dólar e um relação negativa maior com os títulos do Tesouro dos Estados Unidos. Ainda, percebe-se que um efeito tardio do preço final do índice nele mesmo, pois apenas o seu valor no lag 3 é significativo para o preço final do índice. Os valores das duas demais variáveis têm uma relação de efeito significativa com todos os seus lags. 
 
-
 ## Questão 4: Utilizando uma série temporal a sua escolha (mas com pelo menos 10 séries temporais como covariáveis e pelo menos 3 lags de cada uma delas, ou seja, pelo menos 30 covariáveis), implemente, para estimação e seleção, todos métodos vistos em aula sobre machine/statistical learning: ridge, lasso, adalasso, tress (baging, random forest e boosting). Mostre os resultados e os interprete.
 
-Para esta questão, será utilizado um banco de dados utilizado no paper https://data.mendeley.com/datasets/byjnr4kz5v/3 que contém recursos de várias categorias de indicadores técnicos, contratos futuros, preços de commodities, índices importantes de mercados em todo o mundo, preços das principais empresas no mercado dos EUA e taxas de títulos do tesouro. Foram selecionados 10 ativos financeiros: Oil, Gold, JPM, AMZN, AAPL, GE, DJI, NYSE, EUR, DOLLAR e o preço de fechamento (Close) do índice S&P.
+Foram selecionados 10 ativos financeiros: Oil, Gold, JPM, AMZN, AAPL, GE, DJI, NYSE, EUR, DOLLAR e o preço de fechamento (Close) do índice S&P.
 
 ```{r, warning=F, echo=F, include=F}
 library(ggplot2)
