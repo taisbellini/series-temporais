@@ -511,12 +511,11 @@ Observa-se pelo vetor de cointegração que o preço final do índice S&P tem um
 
 ## Questão 4: Utilizando uma série temporal a sua escolha (mas com pelo menos 10 séries temporais como covariáveis e pelo menos 3 lags de cada uma delas, ou seja, pelo menos 30 covariáveis), implemente, para estimação e seleção, todos métodos vistos em aula sobre machine/statistical learning: ridge, lasso, adalasso, tress (baging, random forest e boosting). Mostre os resultados e os interprete.
 
-Foram selecionados 10 ativos financeiros: Oil, Gold, JPM, AMZN, AAPL, GE, DJI, NYSE, EUR, DOLLAR e o preço de fechamento (Close) do índice S&P.
+Para a implementacão desta questão foi utilizado o mesmo banco de dados da questão 3 e foram selecionados 10 ativos financeiros: Oil, Gold, JPM, AMZN, AAPL, GE, DJI, NYSE, EUR, Dollar.index e o preço final (Close) do índice S&P.
 
 ```{r, warning=F, echo=F, include=F}
 library(ggplot2)
 library(tidyr)
-
 ```
 
 
@@ -528,15 +527,17 @@ gold = ts(as.numeric(data$Gold))
 jpm = ts(as.numeric(data$JPM))
 close = ts(as.numeric(data$Close))
 amzn = ts(as.numeric(data$AMZN))
-ge = ts(data$GE)
-dji = ts(data$DJI)
-nyse = ts(data$NYSE)
-eur = ts(data$EUR)
-aapl = ts(data$AAPL)
-dollar = ts(data$Dollar.index)
+ge = ts(as.numeric(data$GE))
+dji = ts(as.numeric(data$DJI))
+nyse = ts(as.numeric(data$NYSE))
+eur = ts(as.numeric(data$EUR))
+aapl = ts(as.numeric(data$AAPL))
+dollar = ts(as.numeric(data$Dollar.index))
 
 df = data.frame(close, oil, gold, jpm, amzn, aapl, ge, dji, nyse, eur, dollar)
 lines = nrow(df)
+
+# Adicionar os valores de lag 
 df = within(df, {
   close1 = c(rep(NA,1), close[-seq(from = lines, by = -1, length.out = 1)])
   close2 = c(rep(NA,2), close[-seq(from = lines, by = -1, length.out = 2)])
@@ -579,7 +580,7 @@ head(df)
 
 #### Ridge
 
-A regressão Ridge é uma regressão de mínimos quadrados ordinários, mas que realiza o _shrinkage_ dos coeficientes a partir de uma penalização na soma dos seus quadrados, impondo que esta soma seja menos que um valor definido $t$. Assim, temos que: 
+A regressão Ridge é uma regressão de mínimos quadrados ordinários que realiza o _shrinkage_ dos coeficientes a partir de uma penalização na soma dos seus quadrados impondo que esta soma seja menos que um valor definido $t$. Assim, temos que: 
 
 $$
 \hat{\beta}_{ridge} = \arg \min_{\beta_0, \dots, \beta_k}  \Bigg\{\sum_{i=1}^n\left(y_i - \beta_0 - \sum_{j=1}^k\beta_j x_{ij}\right) + \lambda\sum_{j=1}^k\beta_j^2\Bigg\}
@@ -587,82 +588,88 @@ $$
 
 O resultado são coeficientes com valores menores do que uma regressão de mínimos quadrados tradicional (OLS).
 
-Vamos determinar a variável resposta e centralizá-la, já que o algoritmo de regressão Ridge parte do pressuposto que os preditores estão padronizados e resposta centralizada. As covariáveis do banco já estão na mesma unidade, não sendo necessária a padronização.
+Vamos determinar a variável resposta e centralizá-la, já que o algoritmo de regressão Ridge parte do pressuposto que os preditores estão padronizados e a variável resposta centralizada. 
 
 ```{r}
 # variavel resposta:
 y = df$close
-y = scale(y, center = T)
+y = y
 #covariaveis
 X = as.matrix(df[,-1])
-X = scale(X)
+X = X
 ```
 
 
 Vamos observar como fica o ajuste em uma regressão de mínimos quadrados tradicional:
 ```{r}
 library(knitr)
+library(glmnet)
 #OLS
-fit.OLS = lm(formula = y~X)
-B.hat.OLS = fit.OLS$coefficients
+fit.OLS = glmnet(y=y,x=X, lambda=0, alpha = 0)
+B.hat.OLS = as.vector(fit.OLS$beta)
+B0.hat.OLS = fit.OLS$a0
+B.hat.OLS = c(B0.hat.OLS, B.hat.OLS)
+names(B.hat.OLS) = c("Intercept", rownames(fit.OLS$beta))
 kable(B.hat.OLS)
 ```
 
 
-Executando a regressão ridge com lambda fixo, e os lambdas escolhidos por AIC, BIC e cross-validation:
+Executando a regressão ridge com lambdas 0.05 e 0.1:
 
-``` {r}
-library(glmnet)
-lambdas_to_try <- 10^seq(-2, 4, length.out = 100)
-lambda_cv = cv.glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = T, nfolds = 10)$lambda.min
-lambda_fixed = 0.1
+``` {r, warning = F}
+lambda_005 = 0.05
+lambda_01 = 0.1
 
 #Ridge Regression - alpha = 0 
-fit.RR.CV = glmnet(y=y,x=X, lambda=lambda_cv, alpha = 0)
-fit.RR.Fixed = glmnet(y=y,x=X, lambda=lambda_fixed, alpha = 0)
+fit.RR.005 = glmnet(y=y,x=X, lambda=lambda_005, alpha = 0)
+fit.RR.01 = glmnet(y=y,x=X, lambda=lambda_01, alpha = 0)
 
 #Coeficientes do RR
-B.hat.RR.CV = as.vector(fit.RR.CV$beta)
-B.hat.RR.Fixed = as.vector(fit.RR.Fixed$beta)
+B.hat.RR.005 = as.vector(fit.RR.005$beta)
+B.hat.RR.01 = as.vector(fit.RR.01$beta)
 
 #Intercepto do RR
-B0.hat.RR.CV = fit.RR.CV$a0
-B0.hat.RR.Fixed = fit.RR.Fixed$a0
+B0.hat.RR.005 = fit.RR.005$a0
+B0.hat.RR.01 = fit.RR.01$a0
 
-B.hat.RR.CV = c(B0.hat.RR.CV, B.hat.RR.CV)
-B.hat.RR.Fixed = c(B0.hat.RR.Fixed, B.hat.RR.Fixed)
-names(B.hat.RR.CV) = names(B.hat.RR.Fixed) = names(B.hat.OLS)
+B.hat.RR.005 = c(B0.hat.RR.005, B.hat.RR.005)
+B.hat.RR.01 = c(B0.hat.RR.01, B.hat.RR.01)
+names(B.hat.RR.005) = names(B.hat.RR.005) = names(B.hat.OLS)
 
-lambdas = cbind(0, lambda_cv, lambda_fixed)
-coefs = cbind(B.hat.OLS, B.hat.RR.CV, B.hat.RR.Fixed)
+lambdas = cbind(0, lambda_005, lambda_01)
+coefs = cbind(B.hat.OLS, B.hat.RR.005, B.hat.RR.01)
 rownames(lambdas) = "Lambda value"
 kable(rbind(coefs, lambdas))
 
+sums = cbind(sum(abs(B.hat.OLS)), sum(abs(B.hat.RR.005)), sum(abs(B.hat.RR.01)))
+colnames(sums) = c("Sum of coefs OLS", "Sum of coefs lambda = 0.05", "Sum of coefs lambda = 0.1")
+kable(sums)
 ```
 
-Conseguimos observar que o $\lambda$ escolhidos por cross-validation, 0.01, reduziu os coeficientes  e o fixado no valor 5 reduziram moderadamente os coeficientes. Estes resultados eram esperados, já que o valor dos coeficientes diminui a medida que o $\lambda$ aumenta, como observado no gráfico abaixo.
+Conseguimos observar que as regressões executadas com $\lambda > 0$ reduziram os coeficientes. O valor dos coeficientes diminui a medida que o $\lambda$ aumenta, como observado no gráfico abaixo:
 
 
 ```{r}
+lambdas_to_try <- 10^seq(-2, 5, length.out = 100)
 res <- glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = T)
 plot(res, xvar = "lambda")
 ```
 Agora, vamos avaliar o ajuste do modelo obtido de acordo com cada lambda escolhido:
 
-```{r}
+```{r, warning = F}
 library(tidyverse)
-y_hat_ols = predict(fit.OLS)
+y_hat_ols = predict(fit.OLS, X)
 ssr_ols = t(y - y_hat_ols) %*% (y - y_hat_ols)
 
-y_hat_cv = predict(fit.RR.CV, X)
-ssr_cv = t(y - y_hat_cv) %*% (y - y_hat_cv)
+y_hat_005 = predict(fit.RR.005, X)
+ssr_005 = t(y - y_hat_005) %*% (y - y_hat_005)
 
-y_hat_fixed = predict(fit.RR.Fixed, X)
-ssr_fixed = t(y - y_hat_fixed) %*% (y - y_hat_fixed)
+y_hat_01 = predict(fit.RR.01, X)
+ssr_01 = t(y - y_hat_01) %*% (y - y_hat_01)
 
 
-y_hat = ts(cbind(y,  y_hat_ols, y_hat_cv, y_hat_fixed))
-colnames(y_hat) = c("real", "ols", "cv", "fixed")
+y_hat = ts(cbind(y,  y_hat_ols, y_hat_005, y_hat_01))
+colnames(y_hat) = c("real", "ols", "005", "01")
 df_y <- data.frame(y_hat)
 df_y$date <- as.numeric(row.names(df_y))
 
@@ -674,24 +681,13 @@ ggplot(df_gathered, aes(x = date, y = value)) +
   geom_line(aes(color = variable), size = 1) +
   theme_minimal()
 
-ssr = cbind(ssr_ols, ssr_cv, ssr_fixed)
-colnames(ssr) = c("ols", "cv", "fixed")
+ssr = cbind(ssr_ols, ssr_005, ssr_01)
+colnames(ssr) = c("ols", "005", "01")
 rownames(ssr) = "SSR"
 kable(ssr)
 ```
 
-```{r}
-df_gathered = df_y[,c("date", "real", "cv", "ols" )] %>%
-  gather(key = "variable", value = "value", -date)
-
-ggplot(df_gathered, aes(x = date, y = value)) + 
-  geom_line(aes(color = variable), size = 1) +
-  theme_minimal()
-```
-
-
-Observa-se que os métodos sem penalização resultam em menos resíduos e ajusta melhor o modelo, o que é esperado, já que não exerce nenhuma restrição ao ajuste. Percebemos que o lambda maior faz um ajuste menos adequado, já que exerce maior penalização, restringindo o valor does coeficientes. 
-
+Observa-se que os métodos com penalização resultam em menos resíduos e ajusta melhor o modelo. 
 
 #### Lasso
 
@@ -739,7 +735,8 @@ res <- glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = FALSE)
 plot(res, xvar = "lambda")
 legend("bottomright", lwd = 1, col = 1:6, legend = colnames(X), cex = .7)
 ```
-As variáveis que indicam o valor de fechamento do índice S&P com lag = 1 e lag = 2 foram as mais significativas para a predição do valor de fechamento do dia atual. Com o $lambda = 0.1$, apenas estas variáveis formaram o modelo de final. Com o $\lambda = 0.01$, foram incluídas também as variáveis AMZN, AAPL, JPM, DJI e NYSE, sendo as duas últimas com coeficientes maiores, indicando que o valor dos outros índices possuem mais interferência no valor de fechamento do índice S&P do que ativos de empresas. 
+
+As variáveis NYSE e DJI, que representam outros índices da bolsa de valores, e seus lags se mostraram significativos para o preço final do índice S&P. Ainda, grandes empresas como Amazon, General Eletric e Apple e seus lags possuem influência no preço final. Com o $lambda = 0.01$, o preço do ouro foi desconsiderado, assim como o índice do dólar com defasagem = 3. Com o $\lambda = 0.1$, mais variáveis foram removidas do modelo, como esperado, sendo algumas delas as variáveis dos índices NYSE e DJI e das grandes empresas com 3 defasagens, o banco JP Morgan e o preço do petróleo. 
 
 ```{r}
 y_hat_cv = predict(fit.LASSO.CV, X)
@@ -767,7 +764,7 @@ kable(ssr)
 
 ```
 
-O modelo com o $\lambda = 0.01$ obteve um melhor ajuste na predição.
+O modelo com o $\lambda = 0.01$ obteve um melhor ajuste na predição, já que utiliza mais variáveis. Porém, observamos no gráfico que ambos fazem um bom ajuste.
 
 
 #### AdaLasso
