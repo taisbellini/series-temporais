@@ -418,99 +418,24 @@ e $\hat{\epsilon_{jt}}$ são os resíduos do ajuste de mínimos quadrados da j-�
 ### b) Com uma série temporal vetorial multivariada a sua escolha (mas com dimensão mínima de 3), estime um VAR ou VEC (o que for mais adequado – faça testes),mostrando os resultados e os interpretando.
 
 
+Para esta questão, vamos selecionar 4 variáveis do banco de dados: Gold, Dollar Index, AMZN e Close. Vamos identificar se as séries possuem relação de cointegração para determinar se devemos utilizar um VEC. Para i
+
 ```{r}
-#library(tsDyn)
-#library(vars)
-#data = read.csv2("SingaporeData.csv", sep = ",")
-
-#GDP = ts(data$lnGDP, start = c(2003,1,31), frequency = 4)
-#CPI = ts(data$lnCPI, start = c(2003,1,31), frequency = 4)
-#M4 = ts(data$lnM4, start = c(2003,1,31), frequency = 4)
-
-#ds <- cbind(GDP,CPI,M4)
-
-#Selecting the Optimal Number of Lags (Recall, this is p - 1)
-
-#lagselect = VARselect(ds, lag.max = 6, type = "const")
-#lagselect$selection
-#lagselect$criteria
-
-#ctest1t <- ca.jo(ds, type = "trace", ecdet = "const", K = 4)
-#summary(ctest1t)
-
-#ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 4)
-#summary(ctest1e)
-
-#Hence, we have one cointegrating relationship in this model
-
-######################################################################
-
-#Build the VECM Model
-
-#Model1 <- VECM(ds, 4, r = 1, estim =("2OLS"))
-#summary(Model1)
-
-#Diagnostic Tests
-
-#Need to Transform VECM to VAR
-
-#Model1VAR <- vec2var(ctest1t, r = 1)
-
-#Serial Correlation
-
-#Serial1 <- serial.test(Model1VAR, lags.pt = 5, type = "PT.asymptotic")
-#Serial1
-
-#ARCH Effects
-
-#Arch1 <- arch.test(Model1VAR, lags.multi = 15, multivariate.only = TRUE)
-#Arch1
-
-#Normality of Residuals
-
-#Norm1 <- normality.test(Model1VAR, multivariate.only = TRUE)
-#Norm1
-
-#Impulse Response Functions
-
-#M3irf <- irf(Model1VAR, impulse = "GDP", response = "M4", n.ahead = 20, boot = TRUE)
-#plot(M3irf, ylab = "M3", main = "GDP's shock to M3")
-
-#CPIirf <- irf(Model1VAR, impulse = "GDP", response = "CPI", n.ahead = 20, boot = TRUE)
-#plot(CPIirf, ylab = "CPI", main = "GDP's shock to CPI")
-
-#GDPirf <- irf(Model1VAR, impulse = "GDP", response = "GDP", n.ahead = 20, boot = TRUE)
-#plot(GDPirf, ylab = "GDP", main = "GDP's shock to GDP")
-
-#Variance Decomposition
-
-#FEVD1 <- fevd(Model1VAR, n.ahead = 10)
-#plot(FEVD1)
-
-```
-
-Para esta questão, será usado um banco de dados de 1462 observações que mede o clima diário da cidade de Delhi, na Índia, no período de primeiro de Janeiro de 2013 a 24 de Abril de 2017 medindo os seguintes parâmetros: temperatura média, umidade, velocidade do vento e pressão média do ar. 
-
-```{r, echo = F, include = F}
-library(tseries) # for ADF unit root tests
 library(urca)
+library(tsDyn)
 library(vars)
-library(mFilter)
-library(forecast)
-```
+library(tseries)
+data = read.csv2("Processed_S&P.csv", sep = ",")
+data = data[-1,]
 
-Análise exploratória dos dados:
+dollar = ts(as.numeric(data$Dollar.index))
+dtb4wk = ts(as.numeric(data$DTB4WK))
+close = ts(as.numeric(data$Close))
 
-```{r}
-data = read.csv("DailyDelhiClimateTrain.csv", sep=",")
-data = data[data$meanpressure > 990 & data$meanpressure < 1300,] #remove outliers
-data = data[data$wind_speed < 30,] #remove outliers
-ts_data = ts(data)
-temp = ts(ts_data[,2])
-humidity = ts(ts_data[,3])
-wind = ts(ts_data[,4])
-pressure = ts(ts_data[,5])
-plot(scale(ts_data[,-1]), main = "Plot de cada série do banco de dados",  yax.flip = TRUE)
+ds = cbind(close, dollar, dtb4wk)
+ds = scale(ds[-1,])
+
+plot(ts(ds), main = "Plot de cada série do banco de dados",  yax.flip = F)
 ```
 
 Para uma análise de séries temporais multivariadas, temos o modelo VAR, cuja fórmula geral VAR(p) tem a seguinte estrutura:
@@ -522,84 +447,33 @@ onde $\mu$ é o vetor de médias da série, $A_i$ são as matrizes dos coeficien
 
 Para utilizá-lo, é necessário avaliar se as séries a serem trabalhadas são estacionárias:
 
-```{r, warning=F}
-par(mfrow=c(2,2))
-acf(temp, main = "ACF Temperatura Média")
-acf(humidity, main = "ACF Umidade")
-acf(wind, main = "ACF Velocidade do vento")
-acf(pressure, main = "ACF Pressão do ar Média")
+```{r}
+par(mfrow=c(1,3))
+acf(close, main = "ACF Close")
+acf(dollar, main = "ACF Dollar Index")
+acf(dtb4wk, main = "ACF DTB4WK")
 
-par(mfrow=c(2,2))
-pacf(temp)
-pacf(humidity)
-pacf(wind)
-pacf(pressure)
+par(mfrow=c(1,3))
+pacf(close)
+pacf(dollar)
+pacf(dtb4wk)
 
 ```
 
-Nota-se que as variáveis média de temperatura, umidade e pressão do ar parecem ter um componente de sazonalidade.
-
 ```{r, warning = F}
-t = adf.test(temp)
-h = adf.test(humidity)
-w = adf.test(wind)
-p = adf.test(pressure)
+c = adf.test(close)
+d = adf.test(dollar)
+a = adf.test(dtb4wk)
 
-adf_pvalues = c(t$p.value, h$p.value, w$p.value, p$p.value)
-names(adf_pvalues) = c("Temp", "Umidade", "Vento", "Pressao")
+adf_pvalues = c(c$p.value,  d$p.value, a$p.value)
+names(adf_pvalues) = c("Close", "Dollar Index", "DTB4WK")
 paste("P-Value do teste ADF")
 adf_pvalues
 ```
 
-Observamos que apenas a série da valocidade do vendo possui p-valor < 0.01. Assim, utilizaremos as demais variáveis com uma diferença para modelar o VAR:
+Nota-se que apenas a variável do Index do Dólar é estacionária. 
 
-```{r, warning = F}
-temp.diff= diff(temp, differences = 1)
-plot(temp.diff)
-
-humidity.diff = diff(humidity, differences = 1)
-plot(humidity.diff)
-
-pressure.diff = diff(pressure, differences = 1)
-plot(pressure.diff)
-
-t = adf.test(temp.diff)
-h = adf.test(humidity.diff)
-w = adf.test(wind)
-p = adf.test(pressure.diff)
-
-adf_pvalues = c(t$p.value, h$p.value, w$p.value, p$p.value)
-names(adf_pvalues) = c("Temp", "Umidade", "Vento", "Pressao")
-paste("P-Value do teste ADF")
-adf_pvalues
-```
-
-Vamos remover as últimas 7 observações para avaliar o ajuste do modelo depois:
-
-```{r}
-ts_data_diff = ts(cbind(temp.diff, humidity.diff, pressure.diff))
-test = ts_data_diff[1:7,]
-train = ts_data_diff[8:nrow(ts_data_diff),]
-
-VARselect(train, lag.max = 20)
-
-ca = ca.jo(ts_data_diff)
-summary(ca)
-```
-
-```{r}
-#model = VAR(train, p=6, type = "trend")
-#summary(model)
-#summary(model$varresult$wind)$adj.r.squared
-
-#serial.test(model, lags.pt = 15, type = "PT.asymptotic")
-
-```
-
-
-Observa-se que apenas 2 variáveis são séries estacionárias. Portanto, vamos testar a co-integração através do método dos autovalores de Johansen. 
-
-Para isto, temos o modelo VEC, que faz a diferenciação das séries obtendo a seguinte forma:
+Agora, precisamos verificar a existência de cointegração entre as variáveis. Faremos isto através do método dos autovalores de Johansen, que permitem o teste para mais do que duas variáveis ao mesmo tempo. Para isto, temos o modelo VEC, que faz a diferenciação das séries obtendo a seguinte forma:
 
 $$
 \Delta \mathbf{Y_t} = \mathbf{\mu} + A\mathbf{Y_{t-1}} + \Gamma_1\Delta \mathbf{Y_{t-1}} + \dots + \Gamma_p\Delta \mathbf{Y_{t-p}} + \mathbf{\epsilon_t}
@@ -608,16 +482,31 @@ onde $\Delta \mathbf{Y_{t}} = \mathbf{Y_t} - \mathbf{Y_{t-1}}$ é o operador de 
 
 O teste de Johansen verifica sequencialmente se o posto da matriz é 0, 1, 2, ... até o número de séries sendo avaliadas menos um. Se o posto da matriz A = 0, não há co-integração.
 
+Para realizar o teste, precisamos escolher o lag ótimo:
+
 ```{r}
-jotest = ca.jo(ts_data[,-1], spec = "longrun")
-summary(jotest)
-
-lambda = c(0.245989042, 0.063838185, 0.009330528)/0.331000093
-
-temperature = lambda[1]*humidity + lambda[2]*wind + lambda[3]*pressure
-plot(temperature, type = "l")
-adf.test(temperature)
+library(vars)
+lagselect = VARselect(ds, lag.max = 20, type = "const")
+lagselect$selection
 ```
+
+
+```{r}
+library(urca)
+# K = lag -1
+ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 4)
+summary(ctest1e)
+```
+
+Rejeitamos a hipótese de que o número de cointegrações seja zero e não rejeitamos a hipótese de que o número seja menor ou igual a 1.
+
+Portanto, iremos construir um modelo VEC com $r=1$:
+```{r, warning = F}
+vec_model <- VECM(ds, 4, r = 1, estim =("2OLS"))
+summary(vec_model)
+```
+
+Observa-se pelo vetor de cointegração que o preço final do índice S&P tem uma relação negativa pequena com o índice do Dólar e um relação negativa maior com os títulos do Tesouro dos Estados Unidos. Ainda, percebe-se que um efeito tardio do preço final do índice nele mesmo, pois apenas o seu valor no lag 3 é significativo para o preço final do índice. Os valores das duas demais variáveis têm uma relação de efeito significativa com todos os seus lags. 
 
 
 ## Questão 4: Utilizando uma série temporal a sua escolha (mas com pelo menos 10 séries temporais como covariáveis e pelo menos 3 lags de cada uma delas, ou seja, pelo menos 30 covariáveis), implemente, para estimação e seleção, todos métodos vistos em aula sobre machine/statistical learning: ridge, lasso, adalasso, tress (baging, random forest e boosting). Mostre os resultados e os interprete.
