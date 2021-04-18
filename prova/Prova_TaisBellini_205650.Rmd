@@ -1030,6 +1030,13 @@ mean((bag.hat - bag.test)^2)
 
 Percebe-se que o erro quadrático médio da previsão com este método é inferior a todos os outros. Isto é esperado já que são utilizadas todas as variáveis e são treinadas diversas árvores para se chegar na resposta.
 
+
+```{r}
+library(vip)
+vip(bag, num_features = 40, bar = FALSE)
+```
+Ainda, notamos que o preço final do índice com 1 defasagem segue com grande importância, mas já observamos os demais índices e os preços das grandes empresas americanas com mais influência na predição em comparação com os métodos anteriores. 
+
 ##### Boosting
 
 
