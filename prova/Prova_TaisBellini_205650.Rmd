@@ -1012,8 +1012,6 @@ bag = randomForest(close ~ .,
 bag.hat = predict(bag, newdata = test)
 bag.test = test$close
 
-
-
 close.comp = data.frame(date = rep(1:20), predicted = bag.hat, actual = bag.test)
 
 df_gathered = close.comp %>%
@@ -1025,7 +1023,6 @@ ggplot(df_gathered, aes(x = date, y = value)) +
 
 paste("Média da soma dos erros quadráticos")
 mean((bag.hat - bag.test)^2)
-
 ```
 
 Percebe-se que o erro quadrático médio da previsão com este método é inferior a todos os outros. Isto é esperado já que são utilizadas todas as variáveis e são treinadas diversas árvores para se chegar na resposta.
@@ -1039,6 +1036,36 @@ Ainda, notamos que o preço final do índice com 1 defasagem segue com grande im
 
 ##### Boosting
 
+No método de Boosting, também são treinadas diversas árvores a partir de subsets dos dados de treinamento. A diferença para o método de bagging é que estas árvores são construídas sequencialmente e o subset escolhido baseado nos resultados das predições anteriores. Assim, após escolher uma amostra do banco de dados de treinamento, treinar a árvore e fazer a pedição com os dados restantes, os valores que obtiveram resultados piores de predição ganham pesos maiores para serem escolhidos para o treinamento da árvore seguinte.
+
+```{r, warning=F}
+library(gbm)
+
+boost = gbm(
+  close ~.,
+  data = train,
+  distribution = "gaussian",
+  n.trees = 5000,
+  interaction.depth = 4
+)
+
+boost.hat = predict(boost, newdata = test)
+boost.test = test$close
+
+close.comp = data.frame(date = rep(1:20), predicted = boost.hat, actual = boost.test)
+
+df_gathered = close.comp %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal() + ggtitle("Predicted vs. Actual")
+
+paste("Média da soma dos erros quadráticos")
+mean((boost.hat - boost.test)^2)
+```
+
+Observamos um erro quadrático médio menor ainda, já que o se dá um enfoque para "corrigir" os erros dos modelos anteriores.
 
 ## Notes
 
