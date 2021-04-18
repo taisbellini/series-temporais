@@ -575,7 +575,6 @@ df = within(df, {
 })
 
 df = df[-c(1:4),]
-head(df)
 ```
 
 #### Ridge
@@ -832,66 +831,206 @@ Para este caso, a regressão LASSO se mostrou levemente superior.
 
 O método de árvores de decisão consiste em recursivamente encontrar a variável que será usada para particionar os dados remanescentes de forma que a soma do quadrado dos erros entre o valor real da variável resposta e a constante predita naquele grupo é minimizado.
 
+Vamos utilizar o método _tree_ do pacote _rpart_ para gerar uma árvore de regressão que faça a previsão do preço final do índice S&P. 
+
 ```{r}
 library(rpart)
-tree <- rpart(
-  formula = `close` ~ .,
-  data    = df,
+
+test = df[c(1:20),]
+train = df[-c(1:20),]
+
+sp.close <- rpart(
+  formula = close ~ .,
+  data    = train,
   method  = "anova",
   model = F,
   control = list(cp = 0)
 )
-plotcp(tree)
-abline(v = 8, lty = "dashed")
-tree$cptable
-```
+close.hat = predict(sp.close, newdata = test)
+close.test = test$close
 
-```{r}
-library(rpart.plot)
-rpart.plot(tree)
-```
+close.comp = data.frame(date = rep(1:20), predicted = close.hat, actual = close.test)
 
-```{r}
+df_gathered = close.comp %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal() + ggtitle("Predicted vs. Actual")
+
+paste("Média da soma dos erros quadráticos")
+mean((close.hat - close.test)^2)
+```
+Nota-se que o método acompanha a tendência dos valores do preço final, com um erro quadrático médio de 105.35.
+
+Vamos ver quais foram as variáveis mais importantes para a árvore de decisão:
+```{r, warning=F}
 library(vip)
 vip(tree, num_features = 40, bar = FALSE)
 ```
+Os valores passados do preço do índice S&P foram os mais significativos para a tomada de decisão da árvore, em seguida os preços do banco JP Morgan (com zero, 2 e 3 defasagens), e das grandes empresas americanas Amazon, Apple e General Eletrics.
 
-##### Bagging
+A árvore construída possui mais de 1000 splits. Portanto, vamos identificar se é possível gerar uma árvore mais otimizada:
+```{r}
+library(rpart.plot)
 
+plotcp(sp.close)
+abline(v = 8, lty = "dashed")
+```
+Notamos que a partir de 8 splits, começamos a ter uma estabilidade nos erros de predição. Portanto, vamos tentar fazer a poda da árvore para apenas 8 splits:
 
 ```{r}
-library(ipred)
-bag <- bagging(
-  formula = close ~ .,
-  data = df,
-  nbagg = 100,  
-  coob = TRUE,
-  control = rpart.control(minsplit = 2, cp = 0),
-  model = F
+cp.table = as.data.frame(sp.close$cptable)
+cp = cp.table[cp.table$nsplit ==10,]$CP
+pfit = prune(sp.close, cp=cp) # from cptable   
+rpart.plot(pfit)
+
+close.hat = predict(pfit, newdata = test)
+close.test = test$close
+
+close.comp = data.frame(date = rep(1:20), predicted = close.hat, actual = close.test)
+
+df_gathered = close.comp %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal() + ggtitle("Predicted vs. Actual")
+
+paste("Média da soma dos erros quadráticos")
+mean((close.hat - close.test)^2)
+```
+
+Perecebe-se um erro médio maior, em comparação com a árvore sem poda, o que é esperado. Porém o ajuste ficou muito longe do ideal e apenas as variáveis de defasagem do preço foram utilizadas. Vamos tentar uma abordagem intermediária, com menos splits que a árvore original, mas mais do que apenas 8:
+
+```{r}
+cp.table = as.data.frame(sp.close$cptable)
+cp = cp.table[cp.table$nsplit ==50,]$CP
+pfit = prune(sp.close, cp=cp) # from cptable   
+rpart.plot(pfit)
+
+close.hat = predict(pfit, newdata = test)
+close.test = test$close
+
+close.comp = data.frame(date = rep(1:20), predicted = close.hat, actual = close.test)
+
+df_gathered = close.comp %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal() + ggtitle("Predicted vs. Actual")
+
+paste("Média da soma dos erros quadráticos")
+mean((close.hat - close.test)^2)
+
+```
+Com 50 splits temos uma árvore maior, que utiliza mais algumas variáveis para a tomada de decisão, como o preço dos índices NYSE e DJI. O erro médio ainda é maior do que da árvore original, mas menos que a metade do que com 8 splits. 
+
+##### Random Forest e Bagging
+
+Um problema do método de árvore de regressão sem menhuma otimização e utilizando todas as variáveis é o _over-fitting_. Para contornar isto, usa-se o método de Random Forest, no qual selecionamos um número de variáveis que devem ser utilizadas e que serão aleatoriamente escolhidas para serem consideradas no momento de realizar o split. Este algoritmo treina diversas árvores a partir de amostras Bootstrap do banco de dados de treinamento, realizando o procedimento de escolha aleatória das variáveis a serem utilizadas e realizando a predição baseada na média dos resultados obtidos em todas as árvores geradas. Dessa forma, evitamos o uso de variáveis altamente correlacionadas e o _over-fitting_. É comum utilizar a raiz quadrada do número de variáveis preditoras do modelo. No nosso caso, temos 43 preditores, então vamos utilizar 7 variáveis:
+
+```{r}
+library(randomForest)
+rf = randomForest(close ~ .,
+  data = train,
+  mtry = 7,
+  importance = T,
 )
-bag
+
+rf.hat = predict(rf, newdata = test)
+rf.test = test$close
+
+close.comp = data.frame(date = rep(1:20), predicted = rf.hat, actual = rf.test)
+
+df_gathered = close.comp %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal() + ggtitle("Predicted vs. Actual")
+
+paste("Média da soma dos erros quadráticos")
+mean((rf.hat - rf.test)^2)
+
+paste("Número de árvores")
+rf$ntree
+
+plot(rf, main = "Erro médio vs. número de árvores")
 ```
-
-
-##### Random Forest
+Observa-se que com apenas 7 variáveis, o erro quadrático médio fica muito elevado. Ainda, foram geradas 500 árvores para fazer a predição, mas pelo gráfico, percebe-se que a partir de 100 o erro se estabiliza. Vamos tentar com mais variáveis e menos árvores: 
 
 ```{r}
-library(ranger)   # a c++ implementation of random forest 
-library(h2o)      # a java-based implementation of random forest
+rf = randomForest(close ~ .,
+  data = train,
+  mtry = 10,
+  importance = T,
+  ntree = 100
+)
+
+rf.hat = predict(rf, newdata = test)
+rf.test = test$close
+
+close.comp = data.frame(date = rep(1:20), predicted = rf.hat, actual = rf.test)
+
+df_gathered = close.comp %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal() + ggtitle("Predicted vs. Actual")
+
+paste("Média da soma dos erros quadráticos")
+mean((rf.hat - rf.test)^2)
+
+paste("Número de árvores")
+rf$ntree
+
+plot(rf, main = "Erro médio vs. número de árvores")
 ```
 
-
-
-
+Observamos que com 10 variáveis, já reduzimos bastante o erro quadrático médio da previsão. 
 
 ```{r}
-#mincut = 5
-#minsize = 3*mincut
-#mindev = 0.01
-#control1 = tree.control(nobs=length(s), mincut = mincut, minsize = minsize, mindev = mindev)
-#Ajuste da arvore de regressao
-#tree1 = tree(formula=y~.,data = data, control=control1, subset = s)
+library(vip)
+vip(rf, num_features = 40, bar = FALSE)
 ```
+Percebe-se ainda que o preço final do índice S&P com 1, 2 e 3 defasagens tem bastante importância para a árvore de decisão. Em seguida, o banco JP Morgan e os índices NYSE e DJI. 
+
+O método de Bagging segue a mesma lógica do Random Forest, onde diversas árvores são geradas para a previsão e o resultado final é a média das previsões de todas elas. A diferença é que no Bagging não limitamos o número de variáveis para realizar o split das amostras Boostrap.
+
+```{r}
+q = (ncol(train)-1)
+bag = randomForest(close ~ .,
+  data = train,
+  mtry = q,
+  importance = T,
+  ntree = 100
+)
+
+bag.hat = predict(bag, newdata = test)
+bag.test = test$close
+
+
+
+close.comp = data.frame(date = rep(1:20), predicted = bag.hat, actual = bag.test)
+
+df_gathered = close.comp %>%
+  gather(key = "variable", value = "value", -date)
+
+ggplot(df_gathered, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  theme_minimal() + ggtitle("Predicted vs. Actual")
+
+paste("Média da soma dos erros quadráticos")
+mean((bag.hat - bag.test)^2)
+
+```
+
+Percebe-se que o erro quadrático médio da previsão com este método é inferior a todos os outros. Isto é esperado já que são utilizadas todas as variáveis e são treinadas diversas árvores para se chegar na resposta.
+
+##### Boosting
 
 
 ## Notes
