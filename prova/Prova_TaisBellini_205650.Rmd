@@ -718,7 +718,6 @@ B0.hat.LASSO.Fixed01 = fit.LASSO.Fixed01$a0
 
 B.hat.LASSO.CV = c(B0.hat.LASSO.CV, B.hat.LASSO.CV)
 B.hat.LASSO.Fixed01 = c(B0.hat.LASSO.Fixed01, B.hat.LASSO.Fixed01)
-B.hat.RR.Fixed = c(B0.hat.RR.Fixed, B.hat.RR.Fixed)
 names(B.hat.LASSO.CV) = names(B.hat.LASSO.Fixed01) = names(B.hat.OLS)
 
 lambdas = cbind(lambda, 0.1)
@@ -831,7 +830,7 @@ Para este caso, a regressão LASSO se mostrou levemente superior.
 
 O método de árvores de decisão consiste em recursivamente encontrar a variável que será usada para particionar os dados remanescentes de forma que a soma do quadrado dos erros entre o valor real da variável resposta e a constante predita naquele grupo é minimizado.
 
-Vamos utilizar o método _tree_ do pacote _rpart_ para gerar uma árvore de regressão que faça a previsão do preço final do índice S&P. 
+Vamos utilizar o método _rpart_ para gerar uma árvore de regressão que faça a previsão do preço final do índice S&P. 
 
 ```{r}
 library(rpart)
@@ -866,7 +865,7 @@ Nota-se que o método acompanha a tendência dos valores do preço final, com um
 Vamos ver quais foram as variáveis mais importantes para a árvore de decisão:
 ```{r, warning=F}
 library(vip)
-vip(tree, num_features = 40, bar = FALSE)
+vip(sp.close, num_features = 40, bar = FALSE)
 ```
 Os valores passados do preço do índice S&P foram os mais significativos para a tomada de decisão da árvore, em seguida os preços do banco JP Morgan (com zero, 2 e 3 defasagens), e das grandes empresas americanas Amazon, Apple e General Eletrics.
 
@@ -1066,6 +1065,79 @@ mean((boost.hat - boost.test)^2)
 ```
 
 Observamos um erro quadrático médio menor ainda, já que o se dá um enfoque para "corrigir" os erros dos modelos anteriores.
+
+
+## Questão 5: Considere o modelo $y_t = m(y_{t-1}) + \varepsilon_t$ onde $\varepsilon_t \sim IID D(0, \sigma^2)$. Escolha uma função m(.) não linear e simule uma série temporal de tamanho 500 deste modelo. Na sequência estime a função m(.) por regressão linear local e, via intervalos de confiança construídos por bootstrap para m(.), teste se um modelo linear seria adequado.
+
+Para a estimação de uma função não paramétrica $Y_t = m(Y_{t-1}) + \varepsilon_t$, utiliza-se a regressão polinomial local, que consiste em separar a função em um grid e estimar $\beta$, por expansão de Taylor, em cada banda deste grid. A função objetivo se dá por:
+
+$$
+SQ_F = \sum_{t-1}^T\left[Y_t - \{\beta_0 + \beta_1(Y_t-y) + \dots + \beta_p(Y_t-y)^p\}\right]^2 \frac{1}{h}K\left(\frac{Y_{t-1}-y}{h}\right)
+$$
+onde $K$ é a função Kernel com uma distribuição simétrica centrada em zero (usualmente a normal padrão), $h$ é o que chamamos de _bandwidth_ que é qualquer número entre 0 e infinito. Com esta função, conseguimos dar peso aos pontos $Y_{t-1}$ que estão mais próximos de $y$, garantindo que estes serão utilizados para a estimação local. Observe que quanto mais próximo de zero estiver o $h$, mais próximos serão os pontos com mais peso na estimação. Por outro lado, se $h$ for muito grande, o termo $\frac{Y_{t-1}-y}{h}$ será pequeno, e pontos mais longe serão utilizados.
+
+Simulando os dados para um modelo $Y_t = \beta_0 + \beta_1Y_{t-1}^4 + \varepsilon_t$:
+```{r}
+set.seed(205650)
+n = 500
+b0 = 12
+b1 = 5
+d = 8
+x = seq(-10, 10, length = n)
+e = rt(n, 1, d)
+y = b0 + b1*x^4 + e
+
+hist(y, main = "Histograma de Yt simulado")
+
+data = matrix(c(y,x), byrow=F, ncol=2)
+plot(x,y, main = "Gráfico de Yt")
+```
+
+```{r, warning=F}
+library(KernSmooth)
+par(mfrow=c(2,2))
+m1 = locpoly(x, y, degree=1, bandwidth = 1)
+plot(x,y, main = "Estimação de Yt com grau=1 e h = 1")
+lines(m1$x, m1$y, col = "red")
+m2 = locpoly(x, y, bandwidth = 100)
+plot(x,y, main = "Estimação de Yt com grau=1 e h = 100")
+lines(m2$x, m2$y, col = "blue")
+m3 = lm(y ~ x)
+plot(x,y, main = "Estimação de Yt com regressão linear")
+abline(m3, col = "orange")
+m4 = locpoly(x, y, bandwidth = 0.1)
+plot(x,y, main ="Estimação de Y com degree=1 e h = 0.1")
+lines(m4$x, m4$y, col = "red")
+
+```
+
+Observa-se que, mesmo utilizando um polinômio de Taylor de grau 1, obtemos uma boa estimação da função $Y_t$, que é de ordem 4. Note que, com o $h$ muito grande, não foi possível fazer um ajuste adequado, já que praticamente não foi feita a estimação local. Ainda, com $h=100$ e com uma regressão linear obtemos o mesmo resultado, pois a função Kernel não exerce influência na escolha de pontos vizinhos de $y$.
+
+
+Escolhendo o $h$ ótimo:
+```{r}
+library(PLRModels)
+hcv = np.cv(dados)
+hcvvo = hcv$h.opt$matrix.0..2..num.ln.[2]
+hplug = dpill(x,y)
+hplug
+
+m1 = locpoly(x,y, bandwidth = hplug)
+plot(x,y)
+lines(m1$x, m1$y, col = "purple")
+
+m1 = locpoly(x,y, bandwidth = hcvvo)
+plot(x,y)
+lines(m1$x, m1$y, col = "pink")
+
+m1 = locpoly(x,y, bandwidth = hplug, degree = 2)
+lines(m1$x, m1$y, col = "yellow")
+```
+
+```{r}
+```
+
+
 
 ## Notes
 
