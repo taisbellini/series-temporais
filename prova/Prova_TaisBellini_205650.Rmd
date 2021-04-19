@@ -1089,7 +1089,7 @@ y = b0 + b1*x^4 + e
 
 hist(y, main = "Histograma de Yt simulado")
 
-data = matrix(c(y,x), byrow=F, ncol=2)
+sim.data = matrix(c(y,x), byrow=F, ncol=2)
 plot(x,y, main = "Gráfico de Yt")
 ```
 
@@ -1117,24 +1117,26 @@ Observa-se que, mesmo utilizando um polinômio de Taylor de grau 1, obtemos uma 
 Escolhendo o $h$ ótimo:
 ```{r}
 library(PLRModels)
-hcv = np.cv(dados)
-hcvvo = hcv$h.opt$matrix.0..2..num.ln.[2]
+hcv = np.cv(sim.data)
+hcv = hcv$h.opt$matrix.0..2..num.ln.[2]
 hplug = dpill(x,y)
-hplug
 
-m1 = locpoly(x,y, bandwidth = hplug)
-plot(x,y)
+par(mfrow=c(1,2))
+m1 = locpoly(x,y, bandwidth = hcv)
+plot(x,y, main = "Estimativa de Yt com h por CV")
 lines(m1$x, m1$y, col = "purple")
 
-m1 = locpoly(x,y, bandwidth = hcvvo)
-plot(x,y)
-lines(m1$x, m1$y, col = "pink")
-
-m1 = locpoly(x,y, bandwidth = hplug, degree = 2)
-lines(m1$x, m1$y, col = "yellow")
+m2 = locpoly(x,y, bandwidth = hplug)
+plot(x,y, main = "Estimativa de Yt com h por plug-in")
+lines(m2$x, m2$y, col = "pink")
 ```
 
 ```{r}
+library(simpleboot)
+
+m = lm(y ~ x)
+sb = lm.boot(m, 1000)
+plot(sb)
 ```
 
 
