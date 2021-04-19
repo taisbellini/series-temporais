@@ -8,8 +8,6 @@ header-includes:
   - \DeclareMathOperator{\EX}{\mathbb{E}}
   - \DeclareMathOperator{\Z}{\mathbb{Z}}
   - \DeclareMathOperator*{\argmax}{arg\,max}
-
-
 ---
 
 ```{r setup, include=FALSE}
@@ -420,7 +418,7 @@ e $\hat{\epsilon_{jt}}$ são os resíduos do ajuste de mínimos quadrados da j-�
 
 Para esta questão, será utilizado um banco de dados utilizado em @Hoseinzade2019 que contém várias categorias de indicadores do mercado financeiro, como preços de commodities, índices importantes de mercados em todo o mundo, preços das principais empresas no mercado dos EUA e taxas de títulos do tesouro. Os dados foram observados diariamente de 2010 até 2017. Foram selecionadas 3 variáveis do banco de dados: Preço final do índice S&P (Close), que contém quinhentos ativos cotados nas bolsas de NYSE ou NASDAQ, Índice do Dólar (Dollar.index) e taxa de títulos do Tesouro dos Estados Unidos(DTB4WK).
 
-```{r}
+```{r, results='hide', warning = F, message=F}
 library(urca)
 library(tsDyn)
 library(vars)
@@ -448,19 +446,18 @@ onde $\mu$ é o vetor de médias da série, $A_i$ são as matrizes dos coeficien
 Para utilizá-lo, é necessário avaliar se as séries a serem trabalhadas são estacionárias:
 
 ```{r}
-par(mfrow=c(1,3))
+par(mfrow=c(2,2))
 acf(close, main = "ACF Close")
 acf(dollar, main = "ACF Dollar Index")
 acf(dtb4wk, main = "ACF DTB4WK")
-
-par(mfrow=c(1,3))
+par(mfrow=c(2,2))
 pacf(close)
 pacf(dollar)
 pacf(dtb4wk)
 
 ```
 
-```{r, warning = F}
+```{r, warning = F, message=F}
 c = adf.test(close)
 d = adf.test(dollar)
 a = adf.test(dtb4wk)
@@ -471,7 +468,7 @@ paste("P-Value do teste ADF")
 adf_pvalues
 ```
 
-Nota-se que apenas a variável do Índice do Dólar é estacionária. 
+Nota-se que a variável DTB4WK não é estacionária. 
 
 Agora, precisamos verificar a existência de cointegração entre as variáveis. Faremos isto através do método dos autovalores de Johansen, que permite o teste para mais do que duas variáveis ao mesmo tempo. Para isto, temos o modelo VEC, que faz a diferenciação das séries obtendo a seguinte forma:
 
@@ -490,12 +487,11 @@ lagselect = VARselect(ds, lag.max = 20, type = "const")
 lagselect$selection
 ```
 
-O lag ótimo obtivo para o VAR é 5, portanto, para o VEC, utilizamos 4:
+O lag ótimo obtivo para o VAR é 6, portanto, para o VEC, utilizamos 5:
 
 ```{r}
-library(urca)
 # K = lag -1
-ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 4)
+ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 5)
 summary(ctest1e)
 ```
 
@@ -503,21 +499,21 @@ Rejeitamos a hipótese de que o número de cointegrações seja zero e não reje
 
 Portanto, iremos construir um modelo VEC com $r=1$:
 ```{r, warning = F}
-vec_model <- VECM(ds, 4, r = 1, estim =("2OLS"))
+vec_model <- VECM(ds, 5, r = 1, estim =("2OLS"))
 summary(vec_model)
 ```
 
-Observa-se pelo vetor de cointegração que o preço final do índice S&P tem uma relação negativa pequena com o índice do Dólar e um relação negativa maior com os títulos do Tesouro dos Estados Unidos. Ainda, percebe-se que um efeito tardio do preço final do índice nele mesmo, pois apenas o seu valor no lag 3 é significativo para o preço final do índice. Os valores das duas demais variáveis têm uma relação de efeito significativa com todos os seus lags. 
+Observa-se pelo vetor de cointegração que o preço final do índice S&P tem uma relação positiva pequena com o índice do Dólar e um relação negativa maior com os títulos do Tesouro dos Estados Unidos. Ainda, percebe-se que o efeito do preço final do índice com defasagem 1, 3 e 5 é significativo para o preço final do índice. Os valores das duas demais variáveis têm uma relação de efeito significativa com os seus próprios lags. 
 
 ## Questão 4: Utilizando uma série temporal a sua escolha (mas com pelo menos 10 séries temporais como covariáveis e pelo menos 3 lags de cada uma delas, ou seja, pelo menos 30 covariáveis), implemente, para estimação e seleção, todos métodos vistos em aula sobre machine/statistical learning: ridge, lasso, adalasso, tress (baging, random forest e boosting). Mostre os resultados e os interprete.
 
 Para a implementacão desta questão foi utilizado o mesmo banco de dados da questão 3 e foram selecionados 10 ativos financeiros: Oil, Gold, JPM, AMZN, AAPL, GE, DJI, NYSE, EUR, Dollar.index e o preço final (Close) do índice S&P.
 
+
 ```{r, warning=F, echo=F, include=F}
 library(ggplot2)
 library(tidyr)
 ```
-
 
 ```{r}
 data = read.csv2("Processed_S&P.csv", sep = ",")
@@ -577,7 +573,7 @@ df = within(df, {
 df = df[-c(1:4),]
 ```
 
-#### Ridge
+### Ridge
 
 A regressão Ridge é uma regressão de mínimos quadrados ordinários que realiza o _shrinkage_ dos coeficientes a partir de uma penalização na soma dos seus quadrados impondo que esta soma seja menos que um valor definido $t$. Assim, temos que: 
 
@@ -587,20 +583,19 @@ $$
 
 O resultado são coeficientes com valores menores do que uma regressão de mínimos quadrados tradicional (OLS).
 
-Vamos determinar a variável resposta e centralizá-la, já que o algoritmo de regressão Ridge parte do pressuposto que os preditores estão padronizados e a variável resposta centralizada. 
-
+Vamos determinar a variável resposta e os preditores. A regress'ao ridge assume que a variável resposta está centralizada e os preditores padronizados:
 ```{r}
 # variavel resposta:
-y = df$close
-y = y
+y = scale(df$close, center = T, scale = F)
+
 #covariaveis
 X = as.matrix(df[,-1])
-X = X
+X= scale(X)
 ```
 
 
 Vamos observar como fica o ajuste em uma regressão de mínimos quadrados tradicional:
-```{r}
+```{r, message=F, warning=F}
 library(knitr)
 library(glmnet)
 #OLS
@@ -655,7 +650,7 @@ plot(res, xvar = "lambda")
 ```
 Agora, vamos avaliar o ajuste do modelo obtido de acordo com cada lambda escolhido:
 
-```{r, warning = F}
+```{r, warning = F, message=F}
 library(tidyverse)
 y_hat_ols = predict(fit.OLS, X)
 ssr_ols = t(y - y_hat_ols) %*% (y - y_hat_ols)
@@ -686,9 +681,9 @@ rownames(ssr) = "SSR"
 kable(ssr)
 ```
 
-Observa-se que os métodos com penalização resultam em menos resíduos e ajusta melhor o modelo. 
+Observa-se que os métodos com penalização resultam em mais resíduos, já que aplicam restrições a escolha do modelo. Porém a diferença é pequena e, pelo gráfico, observamos um ajuste parecido em todos. 
 
-#### Lasso
+### Lasso
 
 A regressão utilizando Lasso é muito parecida com a regressão Ridge, mas neste caso penaliza-se a soma dos valores absolutos dos coeficientes, ao invés dos quadrados:
 
@@ -698,7 +693,7 @@ $$
 
 Como resultado, temos coeficientes que são totalmente zerados, permitindo uma seleção de variáveis. 
 
-Testando com os valores de $\lambda$ fixado em 0.1 e escolhido por cross-validated:
+Testando com os valores de $\lambda$ fixado em 0.1 e escolhido por cross-validation:
 ```{r}
 lasso_cv <- cv.glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = F, nfolds = 10)
 lambda <- lasso_cv$lambda.min
@@ -726,7 +721,7 @@ rownames(lambdas) = "Lambda value"
 kable(rbind(coefs, lambdas))
 ```
 
-Observa-se que o método de cross-validation escolheu o $\lambda = 0.01$ e, em comparação com o $\lambda = 0.1$ zerou menos coeficientes, o que é esperado, pois quanto maior o $\lambda$, mais variáveis serão zeradas, como indicado no gráfico abaixo. 
+Observa-se que o método de cross-validation escolheu o $\lambda = 0.36$ e, em comparação com o $\lambda = 0.1$ zerou mais coeficientes, o que é esperado, pois quanto maior o $\lambda$, mais variáveis serão zeradas, como indicado no gráfico abaixo. 
 
 ```{r}
 res <- glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = FALSE)
@@ -734,7 +729,7 @@ plot(res, xvar = "lambda")
 legend("bottomright", lwd = 1, col = 1:6, legend = colnames(X), cex = .7)
 ```
 
-As variáveis NYSE e DJI, que representam outros índices da bolsa de valores, e seus lags se mostraram significativos para o preço final do índice S&P. Ainda, grandes empresas como Amazon, General Eletric e Apple e seus lags possuem influência no preço final. Com o $lambda = 0.01$, o preço do ouro foi desconsiderado, assim como o índice do dólar com defasagem = 3. Com o $\lambda = 0.1$, mais variáveis foram removidas do modelo, como esperado, sendo algumas delas as variáveis dos índices NYSE e DJI e das grandes empresas com 3 defasagens, o banco JP Morgan e o preço do petróleo. 
+O preço final do índice S&P nos lags 1 e 2 foram os mais significativos para determinar o preço final. As variáveis NYSE e DJI, que representam outros índices da bolsa de valores também se mostraram significativos. Ainda, grandes empresas como Amazon, Apple e o banco JP Morgan (incluindo alguns de seus lags) possuem influência no preço final. Com o $lambda = 0.35$, a maioria das variáveis com defasagem = 3 foram desconsideradas. Com o $\lambda = 0.1$,também observa-se a remoção de algumas variáveis com 3 defasagens removidas. No segundo cenário, 6 variáveis foram removidas do modelo, enquanto no primeiro 18 foram desconsideradas do modelo final. 
 
 ```{r}
 y_hat_cv = predict(fit.LASSO.CV, X)
@@ -765,7 +760,7 @@ kable(ssr)
 O modelo com o $\lambda = 0.01$ obteve um melhor ajuste na predição, já que utiliza mais variáveis. Porém, observamos no gráfico que ambos fazem um bom ajuste.
 
 
-#### AdaLasso
+### AdaLasso
 
 O método de AdaLasso introduz a ideia de adicionar pesos na penalização, de forma que valores altos de $\beta$ estimados recebem pesos menores e, consequentemente, menores penalizações, em oposição a valores baixos de $\beta$. 
 
@@ -826,7 +821,7 @@ kable(ssr)
 
 Para este caso, a regressão LASSO se mostrou levemente superior.
 
-#### Trees
+### Decision Trees
 
 O método de árvores de decisão consiste em recursivamente encontrar a variável que será usada para particionar os dados remanescentes de forma que a soma do quadrado dos erros entre o valor real da variável resposta e a constante predita naquele grupo é minimizado.
 
@@ -865,7 +860,7 @@ Nota-se que o método acompanha a tendência dos valores do preço final, com um
 Vamos ver quais foram as variáveis mais importantes para a árvore de decisão:
 ```{r, warning=F}
 library(vip)
-vip(sp.close, num_features = 40, bar = FALSE)
+vip(sp.close, num_features = 20, bar = FALSE)
 ```
 Os valores passados do preço do índice S&P foram os mais significativos para a tomada de decisão da árvore, em seguida os preços do banco JP Morgan (com zero, 2 e 3 defasagens), e das grandes empresas americanas Amazon, Apple e General Eletrics.
 
@@ -926,7 +921,7 @@ mean((close.hat - close.test)^2)
 ```
 Com 50 splits temos uma árvore maior, que utiliza mais algumas variáveis para a tomada de decisão, como o preço dos índices NYSE e DJI. O erro médio ainda é maior do que da árvore original, mas menos que a metade do que com 8 splits. 
 
-##### Random Forest e Bagging
+### Random Forest e Bagging
 
 Um problema do método de árvore de regressão sem menhuma otimização e utilizando todas as variáveis é o _over-fitting_. Para contornar isto, usa-se o método de Random Forest, no qual selecionamos um número de variáveis que devem ser utilizadas e que serão aleatoriamente escolhidas para serem consideradas no momento de realizar o split. Este algoritmo treina diversas árvores a partir de amostras Bootstrap do banco de dados de treinamento, realizando o procedimento de escolha aleatória das variáveis a serem utilizadas e realizando a predição baseada na média dos resultados obtidos em todas as árvores geradas. Dessa forma, evitamos o uso de variáveis altamente correlacionadas e o _over-fitting_. É comum utilizar a raiz quadrada do número de variáveis preditoras do modelo. No nosso caso, temos 43 preditores, então vamos utilizar 7 variáveis:
 
@@ -1033,7 +1028,7 @@ vip(bag, num_features = 40, bar = FALSE)
 ```
 Ainda, notamos que o preço final do índice com 1 defasagem segue com grande importância, mas já observamos os demais índices e os preços das grandes empresas americanas com mais influência na predição em comparação com os métodos anteriores. 
 
-##### Boosting
+### Boosting
 
 No método de Boosting, também são treinadas diversas árvores a partir de subsets dos dados de treinamento. A diferença para o método de bagging é que estas árvores são construídas sequencialmente e o subset escolhido baseado nos resultados das predições anteriores. Assim, após escolher uma amostra do banco de dados de treinamento, treinar a árvore e fazer a pedição com os dados restantes, os valores que obtiveram resultados piores de predição ganham pesos maiores para serem escolhidos para o treinamento da árvore seguinte.
 
@@ -1112,7 +1107,7 @@ plot(x, y)
 
 
 
-```{r, warning=F}
+```{r, warning=F, echo =F}
 library(KernSmooth)
 par(mfrow=c(2,2))
 m1 = locpoly(x, y, degree=1, bandwidth = 1)
@@ -1130,7 +1125,7 @@ lines(m4$x, m4$y, col = "red")
 
 ```
 
-Observa-se que, mesmo utilizando um polinômio de Taylor de grau 1, obtemos uma boa estimação da função $Y_t$, que é de ordem 4. Note que, com o $h$ muito grande, não foi possível fazer um ajuste adequado, já que praticamente não foi feita a estimação local. Ainda, com $h=100$ e com uma regressão linear obtemos o mesmo resultado, pois a função Kernel não exerce influência na escolha de pontos vizinhos de $y$. Por fim, o $h$ muito pequeno começa a demonstrar _overfitting_.
+Observa-se que, mesmo utilizando um polinômio de Taylor de grau 1, obtemos uma boa estimação da função $Y_t$, mesmo ela não sendo linear. Note que, com o $h$ muito grande, não foi possível fazer um ajuste adequado, já que praticamente não foi feita a estimação local. Ainda, com $h=100$ e com uma regressão linear obtemos o mesmo resultado, pois a função Kernel não exerce influência na escolha de pontos vizinhos de $y$. Por fim, o $h$ muito pequeno começa a demonstrar _overfitting_.
 
 
 Escolhendo o $h$ ótimo:
@@ -1150,7 +1145,7 @@ plot(x,y, main = "Estimativa de Yt com h por plug-in")
 lines(m2$x, m2$y, col = "pink")
 ```
 
-```{r, warning = F}
+```{r, warning = F, message=F}
 library(simpleboot)
 
 m = lm(y ~ x)
