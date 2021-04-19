@@ -333,7 +333,7 @@ Dado o sistema da equação \ref{eq:var}, consideramos o vetor $\mathbf{c_t} = \
 O estimador de máxima verossimilhança desde sistema, como visto em aula, é definido da seguinte forma:
 
 \begin{equation}
-L(\mathbf{\theta}) = \prod_{t=1}^{T}f(\mathbf{y_t}|\Im_{t-1};\theta) = (2\pi)^{-Tn/2}|\Omega^{-1}|exp\{-\frac{1}{2}\sum_{t-1}^T(\mathbf{y_t}-\mathbf{c_t})^\intercal\Omenga^{-1}(\mathbf{y_t}-\mathbf{c_t})}
+L(\mathbf{\theta}) = \prod_{t=1}^{T}f(\mathbf{y_t}|\Im_{t-1};\theta) = (2\pi)^{-Tn/2}|\Omega^{-1}|exp\{-\frac{1}{2}\sum_{t-1}^T(\mathbf{y_t}-\mathbf{c_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\mathbf{c_t})\}
 \label{eq:lvar}
 \end{equation}
 
