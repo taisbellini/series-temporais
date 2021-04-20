@@ -1103,6 +1103,7 @@ sim = simnlts(500, 0.5, -1.8, 0.8, 1, 2)
 y <- sim$y
 x = sim$x
 sim.data = matrix(c(y,x), byrow=F, ncol=2)
+par(mfrow=c(2,2))
 hist(y)
 plot(x, y)
 ```
@@ -1137,7 +1138,7 @@ hcv = np.cv(sim.data)
 hcv = hcv$h.opt$matrix.0..2..num.ln.[2]
 hplug = dpill(x,y)
 
-par(mfrow=c(1,2))
+par(mfrow=c(2,2))
 m1 = locpoly(x,y, bandwidth = hcv)
 plot(x,y, main = "Estimativa de Yt com h por CV")
 lines(m1$x, m1$y, col = "purple")
