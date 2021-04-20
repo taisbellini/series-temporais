@@ -12,6 +12,7 @@ header-includes:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+remove(list=ls())
 ```
 
 ## Questão 1: Derivar as funções de autocorrelação:
@@ -468,7 +469,7 @@ paste("P-Value do teste ADF")
 adf_pvalues
 ```
 
-Nota-se que a variável DTB4WK não é estacionária. 
+Nota-se que apenas a variável índice do dólar é estacionária. 
 
 Agora, precisamos verificar a existência de cointegração entre as variáveis. Faremos isto através do método dos autovalores de Johansen, que permite o teste para mais do que duas variáveis ao mesmo tempo. Para isto, temos o modelo VEC, que faz a diferenciação das séries obtendo a seguinte forma:
 
@@ -487,11 +488,11 @@ lagselect = VARselect(ds, lag.max = 20, type = "const")
 lagselect$selection
 ```
 
-O lag ótimo obtivo para o VAR é 6, portanto, para o VEC, utilizamos 5:
+O lag ótimo obtivo para o VAR é 5, portanto, para o VEC, utilizamos 4:
 
 ```{r}
 # K = lag -1
-ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 5)
+ctest1e <- ca.jo(ds, type = "eigen", ecdet = "const", K = 4)
 summary(ctest1e)
 ```
 
@@ -499,11 +500,11 @@ Rejeitamos a hipótese de que o número de cointegrações seja zero e não reje
 
 Portanto, iremos construir um modelo VEC com $r=1$:
 ```{r, warning = F}
-vec_model <- VECM(ds, 5, r = 1, estim =("2OLS"))
+vec_model <- VECM(ds, 4, r = 1, estim =("2OLS"))
 summary(vec_model)
 ```
 
-Observa-se pelo vetor de cointegração que o preço final do índice S&P tem uma relação positiva pequena com o índice do Dólar e um relação negativa maior com os títulos do Tesouro dos Estados Unidos. Ainda, percebe-se que o efeito do preço final do índice com defasagem 1, 3 e 5 é significativo para o preço final do índice. Os valores das duas demais variáveis têm uma relação de efeito significativa com os seus próprios lags. 
+Observa-se pelo vetor de cointegração que o preço final do índice S&P tem uma relação negativa pequena com o índice do Dólar e um relação negativa maior com os títulos do Tesouro dos Estados Unidos. Ainda, percebe-se que um efeito tardio do preço final do índice nele mesmo, pois apenas o seu valor no lag 3 é significativo para o preço final do índice. Os valores das duas demais variáveis têm uma relação de efeito significativa com todos os seus lags.
 
 ## Questão 4: Utilizando uma série temporal a sua escolha (mas com pelo menos 10 séries temporais como covariáveis e pelo menos 3 lags de cada uma delas, ou seja, pelo menos 30 covariáveis), implemente, para estimação e seleção, todos métodos vistos em aula sobre machine/statistical learning: ridge, lasso, adalasso, tress (baging, random forest e boosting). Mostre os resultados e os interprete.
 
@@ -583,7 +584,7 @@ $$
 
 O resultado são coeficientes com valores menores do que uma regressão de mínimos quadrados tradicional (OLS).
 
-Vamos determinar a variável resposta e os preditores. A regress'ao ridge assume que a variável resposta está centralizada e os preditores padronizados:
+Vamos determinar a variável resposta e os preditores. A regressão ridge assume que a variável resposta está centralizada e os preditores padronizados:
 ```{r}
 # variavel resposta:
 y = scale(df$close, center = T, scale = F)
@@ -648,6 +649,7 @@ lambdas_to_try <- 10^seq(-2, 5, length.out = 100)
 res <- glmnet(X, y, alpha = 0, lambda = lambdas_to_try, standardize = T)
 plot(res, xvar = "lambda")
 ```
+
 Agora, vamos avaliar o ajuste do modelo obtido de acordo com cada lambda escolhido:
 
 ```{r, warning = F, message=F}
@@ -681,7 +683,7 @@ rownames(ssr) = "SSR"
 kable(ssr)
 ```
 
-Observa-se que os métodos com penalização resultam em mais resíduos, já que aplicam restrições a escolha do modelo. Porém a diferença é pequena e, pelo gráfico, observamos um ajuste parecido em todos. 
+Observa-se que os métodos com penalização resultam em menos resíduos e ajusta melhor o modelo. Porém a diferença é pequena e, pelo gráfico, observamos um ajuste parecido em todos. 
 
 ### Lasso
 
@@ -695,10 +697,11 @@ Como resultado, temos coeficientes que são totalmente zerados, permitindo uma s
 
 Testando com os valores de $\lambda$ fixado em 0.1 e escolhido por cross-validation:
 ```{r}
+set.seed(205650)
 lasso_cv <- cv.glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = F, nfolds = 10)
-lambda <- lasso_cv$lambda.min
+lambda_cv <- lasso_cv$lambda.min
 
-fit.LASSO.CV = glmnet(y=y,x=X, lambda = lambda, alpha = 1)
+fit.LASSO.CV = glmnet(y=y,x=X, lambda = lambda_cv, alpha = 1)
 fit.LASSO.Fixed01 = glmnet(y=y,x=X, lambda = 0.1, alpha = 1)
 
 
@@ -715,13 +718,13 @@ B.hat.LASSO.CV = c(B0.hat.LASSO.CV, B.hat.LASSO.CV)
 B.hat.LASSO.Fixed01 = c(B0.hat.LASSO.Fixed01, B.hat.LASSO.Fixed01)
 names(B.hat.LASSO.CV) = names(B.hat.LASSO.Fixed01) = names(B.hat.OLS)
 
-lambdas = cbind(lambda, 0.1)
+lambdas = cbind(lambda_cv, 0.1)
 coefs = cbind(B.hat.LASSO.CV, B.hat.LASSO.Fixed01)
 rownames(lambdas) = "Lambda value"
 kable(rbind(coefs, lambdas))
 ```
 
-Observa-se que o método de cross-validation escolheu o $\lambda = 0.36$ e, em comparação com o $\lambda = 0.1$ zerou mais coeficientes, o que é esperado, pois quanto maior o $\lambda$, mais variáveis serão zeradas, como indicado no gráfico abaixo. 
+Observa-se que o método de cross-validation escolheu o $\lambda = 0.03$ e, em comparação com o $\lambda = 0.1$ zerou menos coeficientes, o que é esperado, pois quanto maior o $\lambda$, mais variáveis serão zeradas, como indicado no gráfico abaixo. 
 
 ```{r}
 res <- glmnet(X, y, alpha = 1, lambda = lambdas_to_try, standardize = FALSE)
@@ -729,7 +732,7 @@ plot(res, xvar = "lambda")
 legend("bottomright", lwd = 1, col = 1:6, legend = colnames(X), cex = .7)
 ```
 
-O preço final do índice S&P nos lags 1 e 2 foram os mais significativos para determinar o preço final. As variáveis NYSE e DJI, que representam outros índices da bolsa de valores também se mostraram significativos. Ainda, grandes empresas como Amazon, Apple e o banco JP Morgan (incluindo alguns de seus lags) possuem influência no preço final. Com o $lambda = 0.35$, a maioria das variáveis com defasagem = 3 foram desconsideradas. Com o $\lambda = 0.1$,também observa-se a remoção de algumas variáveis com 3 defasagens removidas. No segundo cenário, 6 variáveis foram removidas do modelo, enquanto no primeiro 18 foram desconsideradas do modelo final. 
+As variáveis NYSE e DJI, que representam outros índices da bolsa de valores, e seus lags se mostraram significativos para o preço final do índice S&P. Ainda, como na questão 3, observa-se um efeito tardio do preço final do índice, com um alto coeficiente para o lag 3 da variável Close. Com o $lambda = 0.1$, a maioria das variáveis com defasagem = 3 foram desconsideradas. Com o $\lambda = 0.03$, apenas o valor da empresa americana Apple com 3 defasagens, o valor do ouro e o valor do banco JP Morgan com zero e 1 defasagenss foram removidos do modelo.
 
 ```{r}
 y_hat_cv = predict(fit.LASSO.CV, X)
@@ -754,10 +757,9 @@ ssr = cbind(ssr_cv, ssr_01)
 colnames(ssr) = c("cv", "fixed 0.1")
 rownames(ssr) = "SSR"
 kable(ssr)
-
 ```
 
-O modelo com o $\lambda = 0.01$ obteve um melhor ajuste na predição, já que utiliza mais variáveis. Porém, observamos no gráfico que ambos fazem um bom ajuste.
+O modelo com o $\lambda = 0.03$ obteve um melhor ajuste na predição, já que utiliza mais variáveis. Porém, observamos no gráfico que ambos fazem um bom ajuste.
 
 
 ### AdaLasso
@@ -769,14 +771,14 @@ $$
 $$
 onde $\hat{\mathbf{\omega}}=|\hat{\beta}|^{-\gamma}$, $\gamma >0$ e $\beta$ é um estimador consistente, como os obtidos por Ridge ou OLS.
 
-Implementando AdaLasso com $\lambda \simeq 0.01$ e $\gamma = 0.5$:
+Implementando AdaLasso com $\lambda$ escolhido por cross-validation e $\gamma = 0.5$:
 ```{r}
 #Calculo dos pesos utilizando os coeficientes do LASSO como Primeiro Estagio
 n = nrow(X)
 w = (abs(B.hat.LASSO.CV)+(n)^(-1/2))^(-1)
 
 # Segundo Estagio do adaLASSO
-fit.adaLASSO = glmnet(y=y,x=X, lambda = lambda, alpha = 1, penalty.factor = w)
+fit.adaLASSO = glmnet(y=y,x=X, lambda = lambda_cv, alpha = 1, penalty.factor = w)
 
 #Coeficentes do adaLASSO
 B.hat.adaLASSO = as.vector(fit.adaLASSO$beta)
@@ -789,7 +791,7 @@ names(B.hat.adaLASSO) = names(B.hat.OLS)
 
 lasso_coefs = cbind(B.hat.adaLASSO, B.hat.LASSO.CV)
 colnames(lasso_coefs) = c("adaLASSO", "LASSO")
-lasso_coefs
+kable(lasso_coefs)
 ```
 
 Observa-se que com este método, a variável que indica o preço final do índice S&P com lag = 1 e o valor do banco JP Morgan foi removida, e os valores de ouro e índice do dólar com 3 defasagens foram adicionados, em comparação com o método de regressão LASSO. 
@@ -858,14 +860,14 @@ mean((close.hat - close.test)^2)
 Nota-se que o método acompanha a tendência dos valores do preço final, com um erro quadrático médio de 105.35.
 
 Vamos ver quais foram as variáveis mais importantes para a árvore de decisão:
-```{r, warning=F}
+```{r, warning=F, message=F}
 library(vip)
 vip(sp.close, num_features = 20, bar = FALSE)
 ```
 Os valores passados do preço do índice S&P foram os mais significativos para a tomada de decisão da árvore, em seguida os preços do banco JP Morgan (com zero, 2 e 3 defasagens), e das grandes empresas americanas Amazon, Apple e General Eletrics.
 
 A árvore construída possui mais de 1000 splits. Portanto, vamos identificar se é possível gerar uma árvore mais otimizada:
-```{r}
+```{r, message=F, warning = F}
 library(rpart.plot)
 
 plotcp(sp.close)
@@ -925,7 +927,7 @@ Com 50 splits temos uma árvore maior, que utiliza mais algumas variáveis para 
 
 Um problema do método de árvore de regressão sem menhuma otimização e utilizando todas as variáveis é o _over-fitting_. Para contornar isto, usa-se o método de Random Forest, no qual selecionamos um número de variáveis que devem ser utilizadas e que serão aleatoriamente escolhidas para serem consideradas no momento de realizar o split. Este algoritmo treina diversas árvores a partir de amostras Bootstrap do banco de dados de treinamento, realizando o procedimento de escolha aleatória das variáveis a serem utilizadas e realizando a predição baseada na média dos resultados obtidos em todas as árvores geradas. Dessa forma, evitamos o uso de variáveis altamente correlacionadas e o _over-fitting_. É comum utilizar a raiz quadrada do número de variáveis preditoras do modelo. No nosso caso, temos 43 preditores, então vamos utilizar 7 variáveis:
 
-```{r}
+```{r, message=F, warning=F}
 library(randomForest)
 rf = randomForest(close ~ .,
   data = train,
@@ -986,7 +988,7 @@ plot(rf, main = "Erro médio vs. número de árvores")
 
 Observamos que com 10 variáveis, já reduzimos bastante o erro quadrático médio da previsão. 
 
-```{r}
+```{r, message=F, warning=F}
 library(vip)
 vip(rf, num_features = 40, bar = FALSE)
 ```
@@ -1022,7 +1024,7 @@ mean((bag.hat - bag.test)^2)
 Percebe-se que o erro quadrático médio da previsão com este método é inferior a todos os outros. Isto é esperado já que são utilizadas todas as variáveis e são treinadas diversas árvores para se chegar na resposta.
 
 
-```{r}
+```{r, message=F, warning=F}
 library(vip)
 vip(bag, num_features = 40, bar = FALSE)
 ```
@@ -1032,7 +1034,7 @@ Ainda, notamos que o preço final do índice com 1 defasagem segue com grande im
 
 No método de Boosting, também são treinadas diversas árvores a partir de subsets dos dados de treinamento. A diferença para o método de bagging é que estas árvores são construídas sequencialmente e o subset escolhido baseado nos resultados das predições anteriores. Assim, após escolher uma amostra do banco de dados de treinamento, treinar a árvore e fazer a pedição com os dados restantes, os valores que obtiveram resultados piores de predição ganham pesos maiores para serem escolhidos para o treinamento da árvore seguinte.
 
-```{r, warning=F}
+```{r, warning=F, message=F}
 library(gbm)
 
 boost = gbm(
@@ -1107,7 +1109,7 @@ plot(x, y)
 
 
 
-```{r, warning=F, echo =F}
+```{r, warning=F, message=F}
 library(KernSmooth)
 par(mfrow=c(2,2))
 m1 = locpoly(x, y, degree=1, bandwidth = 1)
