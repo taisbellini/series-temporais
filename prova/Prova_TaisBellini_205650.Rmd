@@ -1,7 +1,7 @@
 ---
 title: "PPGEst - Prova EST0203 - Séries Temporais - Verão 2021"
 author: "Tais Bellini"
-date: "4/10/2021"
+date: "21 de abril 2021"
 output: pdf_document
 bibliography: ref.bib
 header-includes:
@@ -270,39 +270,87 @@ onde $\epsilon_t \sim i.i.d\ N(0, \sigma^2)$, e $Y_{t-1} \dots, Y_{t-p}$ valores
 $$
 Y_t|\Im_{t-1} \sim N(\phi_0 + \phi_1Y_{t-1} + \dots + \phi_pY_{t-p}, \sigma^2)
 $$
-Ainda, sabendo que uma FDP conjunta qualquer $f(X,Y)$ pode ser decomposta em $f(Y|X)f(X)$ e conhecendo a distribuicão de $Y_t|\Im_{t-1}$ podemos reescrever \ref{fmv} como:
+Ainda, sabendo que uma FDP conjunta qualquer $f(X,Y)$ pode ser decomposta em $f(Y|X)f(X)$ podemos reescrever \ref{fmv} como:
 $$
 L(\theta|\mathbf{Y}) = f(Y_t|Y_1, \dots, Y_{t-1};\theta)f(Y_{t-1}, \dots, Y_1;\theta)
 $$
-E assim podemos recursivamente decompor a função conjunta do segundo termo de forma a obter o produto das FDP condicionais de T-1 até 2, e ter FDP marginal de $Y_1$ no segundo termo.
-
-
-
-Ainda, no caso de $Y_1$, vamos retomar o fato de que, para um processo estacionário AR(1):
-$$
-\EX{Y_1} = \mu = \frac{\phi_0}{1-\phi_1}
-$$
-$$
-Var(Y_1) = \frac{\sigma^2}{1-\phi_1^2}
-$$
-Portanto, temos que $Y_1 \sim N(\frac{\phi_0}{1-\phi_1}, \frac{\sigma^2}{1-\phi_1^2})$.
+E, assim, podemos recursivamente decompor a função conjunta do segundo termo de forma a obter o produto das FDP condicionais de T-1 até 2, e ter FDP marginal de $Y_1$ no segundo termo.
 
 Olhando especificamente para o modelo AR(1):
 \begin{equation}
 Y_t = \phi_0 + \phi_1Y_{t-1} + \epsilon_t
 \label{ar1}
 \end{equation}
-
-A decomposição da função de máxima verossimilhança é feita da seguinte forma:
+com $\epsilon_t \sim i.i.d\ N(0, \sigma^2)$, a decomposição da função de máxima verossimilhança é feita da seguinte forma:
 
 $$
-L(\theta|\mathbf{Y}) = f(Y_t|Y_{t-1};\theta)f(Y_{t-1};\theta)
+L(\theta|\mathbf{Y}) = f(Y_t|Y_{t-1};\theta)f(Y_1;\theta)
 $$
-https://faculty.washington.edu/ezivot/econ584/notes/armaestimation.pdf
-http://www.science.unitn.it/AnalisiInfoTLC/SSP/SSP14_15/lectures/lecture15.pdf
-https://math.unice.fr/~frapetti/CorsoP/Chapitre_4_IMEA_1.pdf
-http://www-stat.wharton.upenn.edu/~stine/stat910/lectures/12_est_arma.pdf
-http://course.sdu.edu.cn/G2S/eWebEditor/uploadfile/20140110134920017.pdf
+Conhecendo a distribuicão de $Y_t|\Im_{t-1}$, e sabendo que $\EX{Y_t} = \mu = \frac{\phi_0}{1-\phi_1}$, ou seja, $\phi_0 = \mu(1-\phi_1)$, então podemos escrever:
+$$
+f(Y_t|\Im_{t-1};\theta) \sim N(\mu(1-\phi_1) + \phi_1Y_{t-1},\sigma^2)
+$$
+$$
+\sim N(\mu -\phi_1(Y_{t-1} - \mu),\sigma^2)
+$$
+Reescrevendo $\epsilon_t$ em \ref{ar1}, temos:
+$$
+\epsilon_t = Y_t - \phi_0 - \phi_1Y_{t-1} \\ 
+= Y_t - \mu(1-\phi_1) - \phi_1Y_{t-1} \\
+= (Y_t - \mu) - \phi_1(Y_{t-1} - \mu)
+$$
+Logo, dizemos que:
+$$
+f(Y_t|\Im_{t-1};\theta) = f_{\epsilon}\left[(Y_t - \mu) - \phi_1(Y_{t-1} - \mu)\right]
+$$
+onde $f_{\epsilon}$ é a densidade de $\epsilon_t$, portanto:
+\begin{equation}
+L(\theta|\mathbf{Y}) = f_{\epsilon}\left[(Y_t - \mu) - \phi_1(Y_{t-1} - \mu)\right]f(Y_1;\theta)
+\label{fmv_mod}
+\end{equation}
+
+Para $f(Y_1;\theta)$, vamos considerar que, com $|\phi_1| < 1$ o modelo AR(1):
+$$
+\tilde{Y_t} = \phi_1\tilde{Y}_{t-1} + \epsilon_t
+$$
+com $\tilde{Y_t} = Y_t - \mu$ e $\epsilon_t \sim i.i.d\ N(0, \sigma^2)$ independentes, $\tilde{Y_t}$ pode ser definido, de acordo com @Morettin2006, por:
+$$
+\tilde{Y_t} = \sum_{j=0}^{\infty}\phi_1^j\epsilon_{t-j}
+$$
+onde $\tilde{Y_t} \sim N(0, \sigma^2(1-\phi_1^2)^{-1})$. Portanto, vamos ter que:
+$$
+\tilde{Y_1} = \sum_{j=0}^{\infty}\phi_1^j\epsilon_{t-j} = v
+$$
+$$
+\tilde{Y_t} = \phi_1\tilde{Y}_{t-1} + \epsilon_t\ t = 2, \dots, n
+$$
+em que:
+\begin{equation}
+(v, \epsilon_2, \dots, \epsilon_n) \sim N(0,\Sigma) 
+\label{fmv_mod_dist}
+\end{equation}
+com $\Sigma = diag((1-\phi_1^2)^{-1}), \sigma^2, \dots, \sigma^2)$.
+
+Assim, determinamos a densidade conjunta:
+$$
+f(v,  \epsilon_2, \dots, \epsilon_n) = \left[\frac{(1-\phi_1^2)}{2\pi\sigma^2}\right]^{1/2}exp\left[\frac{-\tilde{Y_1}(1-\phi_1^2)}{2\sigma^2}\right]\left[\frac{1}{2\pi\sigma^2}\right]^{\frac{n-1}{2}} exp\left[\frac{-1}{2\sigma^2}\sum_{t=2}^n(\tilde{Y_t} - \phi_1\tilde{Y}_{t-1})^2\right]
+$$
+e o log da verossimilhança é:
+$$
+l(\theta|\mathbf{Y}) = -\frac{n}{2}ln(2\pi) + \frac{1}{2}ln(1-\phi_1^2) - \frac{n}{2}ln(\sigma^2) - \frac{S(\eta)}{2\sigma^2}
+$$
+$$
+S(\eta) = (Y_1-\mu)^2(1-\phi_1^2) + \sum_{t=2}^n[(Y_t-\mu) -\phi_1(Y_{t-1}-\mu)]^2
+$$
+que deve ser derivada e igualada a zero para definir os valores de $\theta$ estimados.
+
+Por \ref{fmv_mod} e \ref{fmv_mod_dist}:
+$$
+\hat{\phi_1}_{EMV} \sim N(0, \frac{1-\phi_1}{n})
+$$
+$$
+\sqrt{n}(\hat{\phi_1}_{EMV} - \phi_1) \xrightarrow{D} N(0, (1-\phi_1^2))
+$$
 
 ## Questão 3
 
@@ -321,21 +369,16 @@ Dessa forma, temos um sistema de equações no qual a j-ésima linha se dá por:
 
 \begin{equation}
 \begin{aligned}
-y_{jt} = c_j & + \phi_{j1}^{(1)}y_{1,t-1} + \dots + \phi_{jn}^{(1)}y_{n,t-1} +
+y_{jt} = c_j & + \phi_{j1}^{(1)}y_{1,t-1} + \dots + \phi_{jn}^{(1)}y_{n,t-1} + \dots
              & + \phi_{j1}^{(2)}y_{1,t-2} + \dots + \phi_{jn}^{(2)}y_{n,t-2} + \dots 
              & + \phi_{j1}^{(p)}y_{1,t-p} + \dots + \phi_{jn}^{(p)}y_{n,t-p} + \epsilon_{jt} 
 \label{eq:varj}
 \end{aligned}
 \end{equation}
 
+Portanto, o VAR(p) é um sistema em que cada variável é regredida em uma constante e p de seus lags, assim como p lags de cada uma das demais variáveis.
+
 Dado o sistema da equação \ref{eq:var}, consideramos o vetor $\mathbf{c_t} = \mathbf{c} + \Phi_1\mathbf{y_{t-1}} + \dots + \Phi_p\mathbf{y_{t-p}}$, onde $y_t|\Im_{t-1} \sim NM(\mathbf{c_t}, \Omega)$, e o vetor $\mathbf{\theta}  = (\mathbf{c}, \Phi_1, \dots, \Phi_p, \Omega)$. 
-O estimador de máxima verossimilhança desde sistema, como visto em aula, é definido da seguinte forma:
-
-\begin{equation}
-L(\mathbf{\theta}) = \prod_{t=1}^{T}f(\mathbf{y_t}|\Im_{t-1};\theta) = (2\pi)^{-Tn/2}|\Omega^{-1}|exp\{-\frac{1}{2}\sum_{t-1}^T(\mathbf{y_t}-\mathbf{c_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\mathbf{c_t})\}
-\label{eq:lvar}
-\end{equation}
-
 Denotamos, ainda: 
 $$
 \mathbf{c_t} = \Pi^\intercal\mathbf{x_t}
@@ -344,6 +387,21 @@ onde $\Pi^\intercal = (\mathbf{c}, \Phi_1, \dots, \Phi_p)$ e
 $$
 \mathbf{x_t} = \begin{bmatrix} 1 \\ \mathbf{y_{t-1}} \\ \vdots \\ \mathbf{y_{t-p}} \end{bmatrix}
 $$
+
+O estimador de máxima verossimilhança desde sistema, como visto em aula, é definido da seguinte forma:
+
+\begin{equation}
+L(\mathbf{\theta}) = \prod_{t=1}^{T}f(\mathbf{y_t}|\Im_{t-1};\theta) = (2\pi)^{-n/2}|\Omega^{-1}|^{1/2}exp\{-\frac{1}{2}\sum_{t=1}^T(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})\}
+\label{eq:lvar}
+\end{equation}
+
+e o seu log é:
+
+\begin{equation}
+l(\mathbf{\theta}) = \sum_{t=1}^{T}logf(\mathbf{y_t}|\Im_{t-1};\theta) = (-Tn/2)log(2\pi)+(T/2)log|\Omega^{-1}|(-\frac{1}{2})\sum_{t=1}^T(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})
+\label{eq:logvar}
+\end{equation}
+
 Fazendo a derivação em relação a $\Pi$ do logaritmo natural de \ref{eq:lvar} para obter o estimador de MV dos parâmetros do modelo, obtemos o seguinte resultado:
 $$
 \hat{\Pi}^\intercal = \frac{\left[\sum_{t=1}^T\mathbf{y_t}\mathbf{x_t}^\intercal\right]}{\left[\sum_{t=1}^T\mathbf{x_t}\mathbf{x_t}^\intercal\right]}
@@ -355,65 +413,39 @@ Note que a j-ésima linha de $\hat{\Pi}^\intercal$ é definida por:
 \label{eq:varmv}
 \end{equation}
 
-Ou, em sua forma vetorial: 
+Para mostrar que \label{eq:varmv} é equivalente ao estimador de mínimos quadrados ordinários (OLS) da linha j, vamos expandir o último termo, somando e subtraindo $\hat{\Pi}^\intercal \mathbf{x_t}$ e determinando $\hat{\epsilon_t} = y_t - \hat{\Pi}^\intercal \mathbf{x_t}$ como o vetor de resíduos amostrais da observação $t$ de uma regressão OLS de $y_{jt}$ em $x_t$, $j = 1, ..., p$:
 
 \begin{equation}
-\hat{\pi_j}^\intercal = \frac{X^\intercal y_j}{(X^\intercal X)}
-\label{eq:varmvvet}
+\sum_{t=1}^T\left[(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})\right]
+\label{eq:minimize}
 \end{equation}
 
-onde 
 $$
-y_{j} = (y_{j1}, \dots, y_{jT})^\intercal
-$$
-$$
-X = \begin{bmatrix} 
-      1 & y_{1,0} & \dots & y_{n,0} \\
-      \vdots & & & \vdots \\
-      1 & y_{1,t-1} & \dots & y_{n,t-1}
-      \end{bmatrix}
+= \sum_{t=1}^T\left[(\mathbf{y_t}-\hat{\Pi}^\intercal \mathbf{x_t} + \hat{\Pi}^\intercal \mathbf{x_t} - \Pi^\intercal\mathbf{x_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\hat{\Pi}^\intercal \mathbf{x_t} + \hat{\Pi}^\intercal \mathbf{x_t} - \Pi^\intercal\mathbf{x_t})\right]
 $$
 
-Agora, observe a equação da j-ésima linha em \ref{eq:varj}. Sua forma vetorial se dá por: 
+$$
+= \sum_{t=1}^T\left[(\hat{\epsilon_t} + (\hat{\Pi} - \Pi)^\intercal \mathbf{x_t})^\intercal\Omega^{-1}(\hat{\epsilon_t} + (\hat{\Pi} - \Pi)^\intercal \mathbf{x_t})\right]
+$$
+Ainda, podemos seguir com:
+
+\begin{equation}
+= \sum_{t=1}^T\hat{\epsilon_t}^\intercal\Omega^{-1}\hat{\epsilon_t} + 2 \sum_{t=1}^T\hat{\epsilon_t}^\intercal\Omega^{-1}(\hat{\Pi} - \Pi)^\intercal \mathbf{x_t} + \sum_{t=1}^T \mathbf{x_t}^\intercal(\hat{\Pi} - \Pi)\Omega^{-1}(\hat{\Pi} - \Pi)^\intercal \mathbf{x_t}
+\label{eq:varexp}
+\end{equation}
+
+O termo do meio da equação \ref{eq:varexp} é um escalar, portanto, podemos aplicar a operação de traço e obter o seguinte resultado:
 
 $$
-y_{j} = X\beta_j + \epsilon_j
+trace\left[\sum_{t=1}^T\hat{\epsilon_t}^\intercal\Omega^{-1}(\hat{\Pi} - \Pi)^\intercal \mathbf{x_t} \right] = trace\left[\Omega^{-1}(\hat{\Pi} - \Pi)^\intercal\sum_{t=1}^T\mathbf{x_t}\hat{\epsilon_t}^\intercal\right]
 $$
-onde 
+ Por definição, os resíduos de uma regressão de mínimos quadrados ordinários são ortogonais às variáveis respostas, ou seja, $\sum_{t=1}^T\mathbf{x_t}\hat{\epsilon_t}^\intercal = 0$ e podemos zerar o termo do meio de \ref{eq:varexp}. Ainda, $\Omega^{-1}$ é uma matriz positiva definida. Assim, definindo $\mathbf{x_t}^{*} = (\hat{\Pi} - \Pi)^\intercal\mathbf{x_t}$ temos que \ref{eq:minimize} se dá por: 
+ 
 $$
-y_{j} = (y_{j1}, \dots, y_{jT})^\intercal
-$$
-$$
-X = \begin{bmatrix} 
-      1 & y_{1,0} & \dots & y_{n,0} \\
-      \vdots & & & \vdots \\
-      1 & y_{1,t-1} & \dots & y_{n,t-1}
-      \end{bmatrix}
-$$
-$$
-\beta_j = (c_1, \phi_{j1}, \dots, \phi_{jn})^\intercal
-$$
-e
-$$
-\epsilon_j = (\epsilon_{j1}, \dots, \epsilon_{jT})^\intercal
+\sum_{t=1}^T\left[(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})\right] = \sum_{t=1}^T\hat{\epsilon_t}^\intercal\Omega^{-1}\hat{\epsilon_t} + \sum_{t=1}^T[\mathbf{x_t}^{*}]^\intercal\Omega^{-1}\mathbf{x_t}^{*}
 $$
 
-Se obtivermos o estimador de mínimos quadrados (OLS) para estimar $\beta_j$ da equação acima, temos:
-$$
-\hat{\beta_j} = \frac{X^\intercal y_j}{(X^\intercal X)}
-$$
-Que é exatamente equivalente a equação \ref{eq:varmvvet}.
-
-Para a estimação de $\Omega$, temos:
-
-$$
-\hat{\Omega} = \frac{1}{T} \sum_{t=1}^{T}\mathbf{\hat{\epsilon_t}^\intercal\hat{\epsilon_t}}
-$$
-onde
-$$
-\mathbf{\hat{\epsilon_t}} = \begin{bmatrix} \hat{\epsilon_{1t}} \\ \vdots \\ \hat{\epsilon_{nt}} \end{bmatrix}
-$$
-e $\hat{\epsilon_{jt}}$ são os resíduos do ajuste de mínimos quadrados da j-ésima equação.
+Este resultado é positivo para qualquer sequência $\{\mathbf{x_t}^{*}\}_{j=1}^{T}$ menos quando  $\mathbf{x_t}^{*}=0$. Portanto, o que minimiza \ref{eq:minimize} é o $\mathbf{x_t}^{*}=0$, ou seja, $\hat{\Pi} = \Pi$. Portanto, temos que \ref{eq:logvar} é maximizada determinando $\hat{\Pi} = \Pi$ e temos que a regressão por mínimos quadrados ordinários provê o estimador de máxima verossimilhança dos coeficientes do VAR.
 
 ### b) Com uma série temporal vetorial multivariada a sua escolha (mas com dimensão mínima de 3), estime um VAR ou VEC (o que for mais adequado – faça testes),mostrando os resultados e os interpretando.
 
@@ -637,7 +669,8 @@ rownames(lambdas) = "Lambda value"
 kable(rbind(coefs, lambdas))
 
 sums = cbind(sum(abs(B.hat.OLS)), sum(abs(B.hat.RR.005)), sum(abs(B.hat.RR.01)))
-colnames(sums) = c("Sum of coefs OLS", "Sum of coefs lambda = 0.05", "Sum of coefs lambda = 0.1")
+colnames(sums) = c("Sum of coefs OLS", "Sum of coefs lambda = 0.05", 
+                   "Sum of coefs lambda = 0.1")
 kable(sums)
 ```
 
@@ -1069,7 +1102,7 @@ Observamos um erro quadrático médio menor ainda, já que o se dá um enfoque p
 Para a estimação de uma função não paramétrica $Y_t = m(Y_{t-1}) + \varepsilon_t$, utiliza-se a regressão polinomial local, que consiste em separar a função em um grid e estimar $\beta$, por expansão de Taylor, em cada banda deste grid. A função objetivo se dá por:
 
 $$
-SQ_F = \sum_{t-1}^T\left[Y_t - \{\beta_0 + \beta_1(Y_t-y) + \dots + \beta_p(Y_t-y)^p\}\right]^2 \frac{1}{h}K\left(\frac{Y_{t-1}-y}{h}\right)
+SQ_F = \sum_{t=1}^T\left[Y_t - \{\beta_0 + \beta_1(Y_t-y) + \dots + \beta_p(Y_t-y)^p\}\right]^2 \frac{1}{h}K\left(\frac{Y_{t-1}-y}{h}\right)
 $$
 onde $K$ é a função Kernel com uma distribuição simétrica centrada em zero (usualmente a normal padrão), $h$ é o que chamamos de _bandwidth_ que é qualquer número entre 0 e infinito. Com esta função, conseguimos dar peso aos pontos $Y_{t-1}$ que estão mais próximos de $y$, garantindo que estes serão utilizados para a estimação local. Observe que quanto mais próximo de zero estiver o $h$, mais próximos serão os pontos com mais peso na estimação. Por outro lado, se $h$ for muito grande, o termo $\frac{Y_{t-1}-y}{h}$ será pequeno, e pontos mais longe serão utilizados.
 
@@ -1114,16 +1147,16 @@ plot(x, y)
 library(KernSmooth)
 par(mfrow=c(2,2))
 m1 = locpoly(x, y, degree=1, bandwidth = 1)
-plot(x,y, main = "Estimação de Yt com grau=1 e h = 1")
+plot(x,y, main = "Yt grau=1 e h = 1")
 lines(m1$x, m1$y, col = "red")
 m2 = locpoly(x, y, bandwidth = 100)
-plot(x,y, main = "Estimação de Yt com grau=1 e h = 100")
+plot(x,y, main = "Yt grau=1 e h = 100")
 lines(m2$x, m2$y, col = "blue")
 m3 = lm(y ~ x)
-plot(x,y, main = "Estimação de Yt com regressão linear")
+plot(x,y, main = "Yt regressão linear")
 abline(m3, col = "orange")
 m4 = locpoly(x, y, bandwidth = 0.1)
-plot(x,y, main ="Estimação de Y com degree=1 e h = 0.1")
+plot(x,y, main ="Yt com degree=1 e h = 0.1")
 lines(m4$x, m4$y, col = "red")
 
 ```
@@ -1132,7 +1165,7 @@ Observa-se que, mesmo utilizando um polinômio de Taylor de grau 1, obtemos uma 
 
 
 Escolhendo o $h$ ótimo:
-```{r}
+```{r, message=F, warning=F}
 library(PLRModels)
 hcv = np.cv(sim.data)
 hcv = hcv$h.opt$matrix.0..2..num.ln.[2]
@@ -1140,11 +1173,11 @@ hplug = dpill(x,y)
 
 par(mfrow=c(2,2))
 m1 = locpoly(x,y, bandwidth = hcv)
-plot(x,y, main = "Estimativa de Yt com h por CV")
+plot(x,y, main = "Yt com h por CV")
 lines(m1$x, m1$y, col = "purple")
 
 m2 = locpoly(x,y, bandwidth = hplug)
-plot(x,y, main = "Estimativa de Yt com h por plug-in")
+plot(x,y, main = "Yt com h por plug-in")
 lines(m2$x, m2$y, col = "pink")
 ```
 
@@ -1158,16 +1191,4 @@ plot(sb)
 
 Observa-se pelo intervalo de confiança gerado a partir de amostras bootstrap, o modelo linear não é adequado.
 
-
-
-## Notes
-
-VAR:
-https://www.quantstart.com/articles/Johansen-Test-for-Cointegrating-Time-Series-Analysis-in-R/
-https://bookdown.org/ccolonescu/RPoE4/vec-and-var-models.html#estimating-a-vec-model
-https://corporatefinanceinstitute.com/resources/knowledge/other/cointegration/#:~:text=A%20cointegration%20test%20is%20used,time%20in%20the%20long%20term.
-
-arrtigo lidando com clima: https://www.kaggle.com/sumanthvrao/daily-climate-time-series-data
-http://www.phdeconomics.sssup.it/documents/Lesson17.pdf
-
-ref AIC BIC: https://www.datacamp.com/community/tutorials/tutorial-ridge-lasso-elastic-net
+# Referências
