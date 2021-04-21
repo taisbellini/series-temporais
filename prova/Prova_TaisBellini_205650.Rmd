@@ -825,7 +825,7 @@ colnames(lasso_coefs) = c("adaLASSO", "LASSO")
 kable(lasso_coefs)
 ```
 
-Observa-se que com este método, a variável que indica o preço final do índice S&P com lag = 1 e o valor do banco JP Morgan foi removida, e os valores de ouro e índice do dólar com 3 defasagens foram adicionados, em comparação com o método de regressão LASSO. 
+Observa-se que com este método as variáveis que indicam o valor do petróleo com zero e 3 defasagens foram removidas e o valor da empresa Apple foi adicionado, em comparação com o método de regressão LASSO.
 
 ```{r}
 y_hat_lasso = predict(fit.LASSO.CV, X)
@@ -852,7 +852,7 @@ rownames(ssr) = "SSR"
 kable(ssr)
 ```
 
-Para este caso, a regressão LASSO se mostrou levemente superior.
+Para este caso, a regressão LASSO obteve um número levemente menor de resíduos, mas a diferença de ajuste entre os dois foi pequena e ambos fizeram um bom ajuste.
 
 ### Decision Trees
 
