@@ -362,7 +362,6 @@ Dado um modelo multivariado:
 \mathbf{y_t} = \mathbf{c} + \Phi_1\mathbf{y_{t-1}} + \dots + \Phi_p\mathbf{y_{t-p}} + \mathbf{\epsilon_t}
 \label{eq:var}
 \end{equation}
-
 onde $\mathbf{y_t} = \begin{bmatrix} y_{1t} \\ \vdots \\ y_{nt} \end{bmatrix}$ é um vetor contendo $\mathbf{y_t}$ para cada uma das n variáveis, $\mathbf{c} = \begin{bmatrix} c_1 \\ \vdots \\ c_n \end{bmatrix}$ é um vetor de constantes, $\Phi_j = \begin{bmatrix} \phi_{11}^{(j)} & \dots & \phi_{1n}^{(j)} \\ \vdots \\ \phi_{n1}^{(j)} & \dots & \phi_{nn}^{(j)} \end{bmatrix}$ é uma matriz com os parâmetros para todas as variáveis com aquela defasagem e $\mathbf{\epsilon_t} \sim N(\mathbf{0}, \Omega)$ é um vetor de ruídos. 
 
 Dessa forma, temos um sistema de equações no qual a j-ésima linha se dá por: 
@@ -388,7 +387,7 @@ $$
 \mathbf{x_t} = \begin{bmatrix} 1 \\ \mathbf{y_{t-1}} \\ \vdots \\ \mathbf{y_{t-p}} \end{bmatrix}
 $$
 
-O estimador de máxima verossimilhança desde sistema, como visto em aula, é definido da seguinte forma:
+O estimador de máxima verossimilhança deste sistema, como visto em aula, é definido da seguinte forma:
 
 \begin{equation}
 L(\mathbf{\theta}) = \prod_{t=1}^{T}f(\mathbf{y_t}|\Im_{t-1};\theta) = (2\pi)^{-n/2}|\Omega^{-1}|^{1/2}exp\{-\frac{1}{2}\sum_{t=1}^T(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})\}
@@ -402,7 +401,7 @@ l(\mathbf{\theta}) = \sum_{t=1}^{T}logf(\mathbf{y_t}|\Im_{t-1};\theta) = (-Tn/2)
 \label{eq:logvar}
 \end{equation}
 
-Fazendo a derivação em relação a $\Pi$ do logaritmo natural de \ref{eq:lvar} para obter o estimador de MV dos parâmetros do modelo, obtemos o seguinte resultado:
+Fazendo a derivação em relação a $\Pi$ de \ref{eq:logvar} para obter o estimador de MV dos parâmetros do modelo, obtemos o seguinte resultado:
 $$
 \hat{\Pi}^\intercal = \frac{\left[\sum_{t=1}^T\mathbf{y_t}\mathbf{x_t}^\intercal\right]}{\left[\sum_{t=1}^T\mathbf{x_t}\mathbf{x_t}^\intercal\right]}
 $$
@@ -413,7 +412,7 @@ Note que a j-ésima linha de $\hat{\Pi}^\intercal$ é definida por:
 \label{eq:varmv}
 \end{equation}
 
-Para mostrar que \label{eq:varmv} é equivalente ao estimador de mínimos quadrados ordinários (OLS) da linha j, vamos expandir o último termo, somando e subtraindo $\hat{\Pi}^\intercal \mathbf{x_t}$ e determinando $\hat{\epsilon_t} = y_t - \hat{\Pi}^\intercal \mathbf{x_t}$ como o vetor de resíduos amostrais da observação $t$ de uma regressão OLS de $y_{jt}$ em $x_t$, $j = 1, ..., p$:
+Para mostrar que \ref{eq:varmv} é equivalente ao estimador de mínimos quadrados ordinários (OLS) da linha j, vamos expandir o último termo de \ref{eq:logvar}, somando e subtraindo $\hat{\Pi}^\intercal \mathbf{x_t}$ e determinando $\hat{\epsilon_t} = y_t - \hat{\Pi}^\intercal \mathbf{x_t}$ como o vetor de resíduos amostrais da observação $t$ de uma regressão OLS de $y_{jt}$ em $x_t$, $j = 1, ..., p$:
 
 \begin{equation}
 \sum_{t=1}^T\left[(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})\right]
@@ -445,7 +444,7 @@ $$
 \sum_{t=1}^T\left[(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})^\intercal\Omega^{-1}(\mathbf{y_t}-\Pi^\intercal\mathbf{x_t})\right] = \sum_{t=1}^T\hat{\epsilon_t}^\intercal\Omega^{-1}\hat{\epsilon_t} + \sum_{t=1}^T[\mathbf{x_t}^{*}]^\intercal\Omega^{-1}\mathbf{x_t}^{*}
 $$
 
-Este resultado é positivo para qualquer sequência $\{\mathbf{x_t}^{*}\}_{j=1}^{T}$ menos quando  $\mathbf{x_t}^{*}=0$. Portanto, o que minimiza \ref{eq:minimize} é o $\mathbf{x_t}^{*}=0$, ou seja, $\hat{\Pi} = \Pi$. Portanto, temos que \ref{eq:logvar} é maximizada determinando $\hat{\Pi} = \Pi$ e temos que a regressão por mínimos quadrados ordinários provê o estimador de máxima verossimilhança dos coeficientes do VAR.
+Este resultado é positivo para qualquer sequência $\{\mathbf{x_t}^{*}\}_{j=1}^{T}$ menos quando  $\mathbf{x_t}^{*}=0$. Portanto, o que minimiza \ref{eq:minimize} é o $\mathbf{x_t}^{*}=0$, ou seja, $\hat{\Pi} = \Pi$. Logo, temos que \ref{eq:logvar} é maximizada quando $\hat{\Pi} = \Pi$ e temos que a regressão por mínimos quadrados ordinários provê o estimador de máxima verossimilhança dos coeficientes do VAR.
 
 ### b) Com uma série temporal vetorial multivariada a sua escolha (mas com dimensão mínima de 3), estime um VAR ou VEC (o que for mais adequado – faça testes),mostrando os resultados e os interpretando.
 
