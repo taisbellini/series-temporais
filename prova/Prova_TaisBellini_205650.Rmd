@@ -987,7 +987,7 @@ rf$ntree
 
 plot(rf, main = "Erro médio vs. número de árvores")
 ```
-Observa-se que com apenas 7 variáveis, o erro quadrático médio fica muito elevado. Ainda, foram geradas 500 árvores para fazer a predição, mas pelo gráfico, percebe-se que a partir de 100 o erro se estabiliza. Vamos tentar com mais variáveis e menos árvores: 
+Observa-se que com apenas 7 variáveis, o erro quadrático médio fica muito elevado. Ainda, foram geradas 500 árvores para fazer a predição, mas, pelo gráfico, percebe-se que a partir de 100 o erro se estabiliza. Vamos tentar com mais variáveis e menos árvores: 
 
 ```{r}
 rf = randomForest(close ~ .,
@@ -1024,7 +1024,7 @@ Observamos que com 10 variáveis, já reduzimos bastante o erro quadrático méd
 library(vip)
 vip(rf, num_features = 40, bar = FALSE)
 ```
-Percebe-se ainda que o preço final do índice S&P com 1, 2 e 3 defasagens tem bastante importância para a árvore de decisão. Em seguida, o banco JP Morgan e os índices NYSE e DJI. 
+Percebe-se ainda que o preço final do índice S&P com 1, 2 e 3 defasagens tem bastante importância para a árvore de decisão. Em seguida, os valores do petróleo, do Euro e os índices NYSE e DJI. Nota-se uma diferença na importância das variáveis em comparação com o método anterior.
 
 O método de Bagging segue a mesma lógica do Random Forest, onde diversas árvores são geradas para a previsão e o resultado final é a média das previsões de todas elas. A diferença é que no Bagging não limitamos o número de variáveis para realizar o split das amostras Boostrap.
 
