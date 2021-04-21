@@ -448,7 +448,7 @@ Este resultado é positivo para qualquer sequência $\{\mathbf{x_t}^{*}\}_{j=1}^
 
 ### b) Com uma série temporal vetorial multivariada a sua escolha (mas com dimensão mínima de 3), estime um VAR ou VEC (o que for mais adequado – faça testes),mostrando os resultados e os interpretando.
 
-Para esta questão, será utilizado um banco de dados utilizado em @Hoseinzade2019 que contém várias categorias de indicadores do mercado financeiro, como preços de commodities, índices importantes de mercados em todo o mundo, preços das principais empresas no mercado dos EUA e taxas de títulos do tesouro. Os dados foram observados diariamente de 2010 até 2017. Foram selecionadas 3 variáveis do banco de dados: Preço final do índice S&P (Close), que contém quinhentos ativos cotados nas bolsas de NYSE ou NASDAQ, Índice do Dólar (Dollar.index) e taxa de títulos do Tesouro dos Estados Unidos(DTB4WK).
+Para esta questão, será utilizado um banco de dados utilizado em @Hoseinzade2019 que contém várias categorias de indicadores do mercado financeiro, como preços de commodities, índices importantes de mercados em todo o mundo, preços das principais empresas no mercado dos EUA e taxas de títulos do tesouro. Os dados foram observados diariamente de 2010 até 2017. Foram selecionadas 3 variáveis do banco de dados: Preço final do índice S&P (Close), que contém quinhentos ativos cotados nas bolsas de NYSE ou NASDAQ, Índice do Dólar (Dollar.index) e taxa de títulos do Tesouro dos Estados Unidos (DTB4WK).
 
 ```{r, results='hide', warning = F, message=F}
 library(urca)
@@ -509,7 +509,7 @@ $$
 $$
 onde $\Delta \mathbf{Y_{t}} = \mathbf{Y_t} - \mathbf{Y_{t-1}}$ é o operador de diferenciação, $A$ é a matriz de coeficientes para o primeiro lag e $\Gamma_i$ as matrizes dos coeficientes para cada lag. 
 
-O teste de Johansen verifica sequencialmente se o posto da matriz $A$ é 0, 1, 2, ... até o número de séries sendo avaliadas menos um. Se o posto da matriz A = 0, não há co-integração.
+O teste dos autovalores de Johansen verifica sequencialmente se o posto da matriz $A$ é 0, 1, 2, ... até o número de séries sendo avaliadas menos um. Se o posto da matriz A = 0, não há co-integração.
 
 Para realizar o teste, precisamos escolher o lag ótimo:
 
@@ -519,7 +519,7 @@ lagselect = VARselect(ds, lag.max = 20, type = "const")
 lagselect$selection
 ```
 
-O lag ótimo obtivo para o VAR é 5, portanto, para o VEC, utilizamos 4:
+O lag ótimo obtido para o VAR é 5, portanto, para o VEC, utilizamos 4:
 
 ```{r}
 # K = lag -1
@@ -535,7 +535,7 @@ vec_model <- VECM(ds, 4, r = 1, estim =("2OLS"))
 summary(vec_model)
 ```
 
-Observa-se pelo vetor de cointegração que o preço final do índice S&P tem uma relação negativa pequena com o índice do Dólar e um relação negativa maior com os títulos do Tesouro dos Estados Unidos. Ainda, percebe-se que um efeito tardio do preço final do índice nele mesmo, pois apenas o seu valor no lag 3 é significativo para o preço final do índice. Os valores das duas demais variáveis têm uma relação de efeito significativa com todos os seus lags.
+Observa-se pelo vetor de cointegração que o preço final do índice S&P tem uma relação negativa pequena com o índice do Dólar e um relação negativa maior com os títulos do Tesouro dos Estados Unidos. Ainda, percebe-se que um efeito tardio do preço final do índice nele mesmo, pois apenas o seu valor no lag 3 é significativo para o preço final do índice. Os valores das duas demais variáveis têm uma relação de efeito significativa com todos os seus próprios lags.
 
 ## Questão 4: Utilizando uma série temporal a sua escolha (mas com pelo menos 10 séries temporais como covariáveis e pelo menos 3 lags de cada uma delas, ou seja, pelo menos 30 covariáveis), implemente, para estimação e seleção, todos métodos vistos em aula sobre machine/statistical learning: ridge, lasso, adalasso, tress (baging, random forest e boosting). Mostre os resultados e os interprete.
 
