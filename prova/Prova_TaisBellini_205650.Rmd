@@ -763,7 +763,7 @@ plot(res, xvar = "lambda")
 legend("bottomright", lwd = 1, col = 1:6, legend = colnames(X), cex = .7)
 ```
 
-As variáveis NYSE e DJI, que representam outros índices da bolsa de valores, e seus lags se mostraram significativos para o preço final do índice S&P. Ainda, como na questão 3, observa-se um efeito tardio do preço final do índice, com um alto coeficiente para o lag 3 da variável Close. Com o $lambda = 0.1$, a maioria das variáveis com defasagem = 3 foram desconsideradas. Com o $\lambda = 0.03$, apenas o valor da empresa americana Apple com 3 defasagens, o valor do ouro e o valor do banco JP Morgan com zero e 1 defasagenss foram removidos do modelo.
+As variáveis NYSE e DJI, que representam outros índices da bolsa de valores, e seus lags se mostraram significativos para o preço final do índice S&P. Ainda, como na questão 3, observa-se um efeito tardio do preço final do índice, com um alto coeficiente para o lag 3 da variável Close. Com o $lambda = 0.1$, a maioria das variáveis com defasagem = 3 foram desconsideradas. Com o $\lambda = 0.03$, apenas o valor da empresa americana Apple com 3 defasagens, o valor do ouro e o valor do banco JP Morgan com zero e 1 defasagens foram removidos do modelo.
 
 ```{r}
 y_hat_cv = predict(fit.LASSO.CV, X)
