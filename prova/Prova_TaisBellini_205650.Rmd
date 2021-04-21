@@ -541,7 +541,6 @@ Observa-se pelo vetor de cointegração que o preço final do índice S&P tem um
 
 Para a implementacão desta questão foi utilizado o mesmo banco de dados da questão 3 e foram selecionados 10 ativos financeiros: Oil, Gold, JPM, AMZN, AAPL, GE, DJI, NYSE, EUR, Dollar.index e o preço final (Close) do índice S&P.
 
-
 ```{r, warning=F, echo=F, include=F}
 library(ggplot2)
 library(tidyr)
@@ -660,7 +659,7 @@ B0.hat.RR.01 = fit.RR.01$a0
 
 B.hat.RR.005 = c(B0.hat.RR.005, B.hat.RR.005)
 B.hat.RR.01 = c(B0.hat.RR.01, B.hat.RR.01)
-names(B.hat.RR.005) = names(B.hat.RR.005) = names(B.hat.OLS)
+names(B.hat.RR.005) = names(B.hat.RR.01) = names(B.hat.OLS)
 
 lambdas = cbind(0, lambda_005, lambda_01)
 coefs = cbind(B.hat.OLS, B.hat.RR.005, B.hat.RR.01)
@@ -715,7 +714,7 @@ rownames(ssr) = "SSR"
 kable(ssr)
 ```
 
-Observa-se que os métodos com penalização resultam em menos resíduos e ajusta melhor o modelo. Porém a diferença é pequena e, pelo gráfico, observamos um ajuste parecido em todos. 
+Observa-se que os métodos com penalização resultam em menos resíduos, indicando um ajuste melhor do modelo. Porém a diferença é pequena e, pelo gráfico, observamos um ajuste parecido em todos.
 
 ### Lasso
 
