@@ -893,8 +893,9 @@ Nota-se que o método acompanha a tendência dos valores do preço final, com um
 Vamos ver quais foram as variáveis mais importantes para a árvore de decisão:
 ```{r, warning=F, message=F}
 library(vip)
-vip(sp.close, num_features = 20, bar = FALSE)
+vip(sp.close, num_features = 15, bar = FALSE)
 ```
+
 Os valores passados do preço do índice S&P foram os mais significativos para a tomada de decisão da árvore, em seguida os preços do banco JP Morgan (com zero, 2 e 3 defasagens), e das grandes empresas americanas Amazon, Apple e General Eletrics.
 
 A árvore construída possui mais de 1000 splits. Portanto, vamos identificar se é possível gerar uma árvore mais otimizada:
@@ -902,9 +903,9 @@ A árvore construída possui mais de 1000 splits. Portanto, vamos identificar se
 library(rpart.plot)
 
 plotcp(sp.close)
-abline(v = 8, lty = "dashed")
+abline(v = 9, lty = "dashed")
 ```
-Notamos que a partir de 8 splits, começamos a ter uma estabilidade nos erros de predição. Portanto, vamos tentar fazer a poda da árvore para apenas 8 splits:
+Notamos que a partir de 9 splits, começamos a ter uma estabilidade nos erros de predição. Portanto, vamos tentar fazer a poda da árvore para apenas 10 splits:
 
 ```{r}
 cp.table = as.data.frame(sp.close$cptable)
@@ -928,7 +929,7 @@ paste("Média da soma dos erros quadráticos")
 mean((close.hat - close.test)^2)
 ```
 
-Perecebe-se um erro médio maior, em comparação com a árvore sem poda, o que é esperado. Porém o ajuste ficou muito longe do ideal e apenas as variáveis de defasagem do preço foram utilizadas. Vamos tentar uma abordagem intermediária, com menos splits que a árvore original, mas mais do que apenas 8:
+Perecebe-se um erro médio maior, em comparação com a árvore sem poda, o que é esperado. Porém o ajuste ficou muito longe do ideal e apenas as variáveis de defasagem do preço foram utilizadas. Vamos tentar uma abordagem intermediária, com menos splits que a árvore original, mas mais do que apenas 10:
 
 ```{r}
 cp.table = as.data.frame(sp.close$cptable)
@@ -952,7 +953,7 @@ paste("Média da soma dos erros quadráticos")
 mean((close.hat - close.test)^2)
 
 ```
-Com 50 splits temos uma árvore maior, que utiliza mais algumas variáveis para a tomada de decisão, como o preço dos índices NYSE e DJI. O erro médio ainda é maior do que da árvore original, mas menos que a metade do que com 8 splits. 
+Com 50 splits temos uma árvore maior, que utiliza mais algumas variáveis para a tomada de decisão, como o preço dos índices NYSE e DJI. O erro médio ainda é maior do que da árvore original, mas menos que a metade do que com 10 splits. 
 
 ### Random Forest e Bagging
 
