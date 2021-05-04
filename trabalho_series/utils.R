@@ -10,10 +10,10 @@ library(CVXR)
 
 #### Objective function ####
 
-R = function(a, Y, X, TAUS, phi){
+R = function(a, Y, X, TAUS, phi, lambda){
   B = a%*%phi # candidate optimizer
   R.eval = (2*TAUS-1)*(Y-X%*%B) + abs(Y-X%*%B)
-  return(sum(R.eval)) # mean of the preceding objective functions
+  return(sum(R.eval) + lambda*penalty(a)) # mean of the preceding objective functions
 }
 
 
@@ -22,7 +22,17 @@ R = function(a, Y, X, TAUS, phi){
 ### Save ahat and bhat found
 
 penalty = function(a){
-  sum(abs(a))
+  w = weights(a)
+  sum(w*abs(value(sum_entries(a, axis = 1))))
+}
+
+weights = function(a){
+  w = numeric()
+  for (j in 1:nrow(a)){
+    aj = sum(value(abs(a)[j,]))
+    w[j] = 1/aj*(exp(-0.5))
+  }
+  return(w)
 }
 
 #todo - optimize via optim
@@ -37,7 +47,7 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
   TAUS = matrix(rep(taus,N),N,M, byrow = TRUE)
   
   a = Variable(D,L)
-  objective = R(a, Y, X, TAUS, phi) + lambda*penalty(a)
+  objective = R(a, Y, X, TAUS, phi, lambda)
   problem = Problem(Minimize(objective))
   result = solve(problem)
   ahat = result$getValue(a)

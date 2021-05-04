@@ -165,7 +165,6 @@ lines(tau.grid, ssrglobal[,2], lwd=2, col = rgb(0,0,0,.7))
 plot(tau.grid, ssrconquer[,3], type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, ssrglobal[,3], lwd=2, col = rgb(0,0,0,.7))
 
-
 ssrqr_mean = apply(ssrqr, 1, mean)
 ssrconquer_mean = apply(ssrconquer, 1, mean)
 ssrglobal_mean = apply(ssrglobal, 1, mean)
