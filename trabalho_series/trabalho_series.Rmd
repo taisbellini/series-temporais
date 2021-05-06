@@ -196,7 +196,8 @@ An alternative to overcome the inconsistencies that LASSO selection can present 
 \label{eq:betafuncpenAda}
 \end{equation}
 
-In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea for proposing the WLadaLASSO, where $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order.
+In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to proposing the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAda}, $\omega_j = \left[\left(\sum_{h=1}^L|\hat{\delta_{jh}}|\right)e^{-\alpha t}\right]^{-p}$.
+
 
 # Methodology
 

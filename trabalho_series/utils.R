@@ -23,13 +23,18 @@ R = function(a, Y, X, TAUS, phi, lambda){
 
 penalty = function(a){
   w = weights(a)
-  sum(w*abs(value(sum_entries(a, axis = 1))))
+  a_norm = numeric()
+  for (d in 1:nrow(a)){
+    a_norm[d] = value(cvxr_norm(a[d,]))
+  }
+  return(sum(w*a_norm))
 }
 
+#TODO test the norm for aj here as well
 weights = function(a){
   w = numeric()
   for (j in 1:nrow(a)){
-    aj = sum(value(abs(a)[j,]))
+    aj = value(cvxr_norm(a[j,]))
     w[j] = 1/aj*(exp(-0.5))
   }
   return(w)
