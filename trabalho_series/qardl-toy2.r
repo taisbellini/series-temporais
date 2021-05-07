@@ -5,6 +5,7 @@
 library(quantreg)
 library(conquer)
 library(forecast)
+library(qrcmNP)
 source('utils.R')
 
 tau.grid = seq(from=.01,to=.99, by=.02)
@@ -136,10 +137,10 @@ plot(tau.grid, theta1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, conquerfit[3,], lwd=2, col = rgb(0,0,0,.7))
 
 
-# global coefficients
+# global coefficients proposed
 phi = phi_generator(3, tau.grid)
 Xmat1 = cbind(rep(1,nrow(Xmat)), Xmat)
-globalfit = global_qr(taus = tau.grid, phi = phi, X = Xmat1, y = Yvec)
+globalfit = global_qr(taus = tau.grid, phi = phi, X = Xmat1, y = Yvec, lambda=10)
 
 plot(tau.grid, alpha0(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, globalfit$bhat[1,], lwd=2, col = rgb(0,0,0,.7))
@@ -150,10 +151,33 @@ lines(tau.grid, globalfit$bhat[2,], lwd=2, col = rgb(0,0,0,.7))
 plot(tau.grid, theta1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, globalfit$bhat[3,], lwd=2, col = rgb(0,0,0,.7))
 
+# global coefficients Sottile
+# Estimate qadl time series coefficients using qrcm
+k.user = 3
+p = length(tau.grid)
+fo3o = piqr(Yvec~Xmat, formula.p = ~slp(p,k=k.user), lambda = 10)
+fo3o$coefficients$lambda1
+fo4o=slp(tau.grid,k=k.user)
+PHI = cbind(1,fo4o)
+BETA = fo3o$coef$lambda1%*%t(PHI)
+Ypred = cbind(1,Xmat)%*%BETA
+
+# True and estimated coefficients
+plot(tau.grid, alpha0(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, BETA[1,], lwd=2, col = rgb(0,0,0,.7))
+
+plot(tau.grid, alpha1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, BETA[2,], lwd=2, col = rgb(0,0,0,.7))
+
+plot(tau.grid, theta1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, BETA[3,], lwd=2, col = rgb(0,0,0,.7))
+
+
 # ssr comparison
 ssrqr = cbind((alpha0(tau.grid) - coef(qrfit)[1,])^2, (alpha1(tau.grid) - coef(qrfit)[2,])^2, (theta1(tau.grid) - coef(qrfit)[3,])^2)
 ssrconquer = cbind((alpha0(tau.grid) - conquerfit[1,])^2, (alpha1(tau.grid) - conquerfit[2,])^2, (theta1(tau.grid) - conquerfit[3,])^2)
 ssrglobal = cbind((alpha0(tau.grid) - globalfit$bhat[1,])^2, (alpha1(tau.grid) - globalfit$bhat[2,])^2, (theta1(tau.grid) - globalfit$bhat[3,])^2)
+ssrpiqr = cbind((alpha0(tau.grid) - BETA[1,])^2, (alpha1(tau.grid) - BETA[2,])^2, (theta1(tau.grid) - BETA[3,])^2)
 
 plot(tau.grid, ssrqr[,1], type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, ssrconquer[,1], lwd=2, col = rgb(0,1,0,.7))
@@ -172,4 +196,4 @@ plot(tau.grid, ssrconquer_mean, type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, ssrglobal_mean, lwd=2, col = rgb(0,0,0,.7))
 lines(tau.grid, ssrqr_mean, lwd=2, col = rgb(0,1,0,.7))
 
-cbind(mean(ssrqr),mean(ssrconquer), mean(ssrglobal))
+cbind(mean(ssrqr),mean(ssrconquer), mean(ssrglobal), mean(ssrpiqr))

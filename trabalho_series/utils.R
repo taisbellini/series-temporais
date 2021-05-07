@@ -13,7 +13,7 @@ library(CVXR)
 R = function(a, Y, X, TAUS, phi, lambda){
   B = a%*%phi # candidate optimizer
   R.eval = (2*TAUS-1)*(Y-X%*%B) + abs(Y-X%*%B)
-  return(sum(R.eval) + lambda*penalty(a)) # mean of the preceding objective functions
+  return(sum(R.eval)) # mean of the preceding objective functions
 }
 
 
@@ -22,12 +22,15 @@ R = function(a, Y, X, TAUS, phi, lambda){
 ### Save ahat and bhat found
 
 penalty = function(a){
+  paste("a in penalty", value(a))
   w = weights(a)
   a_norm = numeric()
   for (d in 1:nrow(a)){
     a_norm[d] = value(cvxr_norm(a[d,]))
   }
-  return(sum(w*a_norm))
+  pen = sum(w*a_norm)
+  paste("penalty function: ", pen)
+  return(pen)
 }
 
 #TODO test the norm for aj here as well
@@ -37,6 +40,7 @@ weights = function(a){
     aj = value(cvxr_norm(a[j,]))
     w[j] = 1/aj*(exp(-0.5))
   }
+  paste("weigths: ", w)
   return(w)
 }
 
@@ -52,7 +56,7 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
   TAUS = matrix(rep(taus,N),N,M, byrow = TRUE)
   
   a = Variable(D,L)
-  objective = R(a, Y, X, TAUS, phi, lambda)
+  objective = R(a, Y, X, TAUS, phi, lambda) + lambda*penalty(a)
   problem = Problem(Minimize(objective))
   result = solve(problem)
   ahat = result$getValue(a)
