@@ -139,8 +139,11 @@ lines(tau.grid, conquerfit[3,], lwd=2, col = rgb(0,0,0,.7))
 
 # global coefficients proposed
 phi = phi_generator(3, tau.grid)
-Xmat1 = cbind(rep(1,nrow(Xmat)), Xmat)
-globalfit = global_qr(taus = tau.grid, phi = phi, X = Xmat1, y = Yvec, lambda=10)
+Xmat1 = cbind(rep(1,nrow(Xmat)), Xmat, c(NA, Xmat[2:nrow(Xmat),1]), c(NA,Xmat[2:nrow(Xmat),2]))
+Xmat1 = Xmat1[-1,]
+Yvec = Yvec[-1]
+colnames(Xmat1) = c("Intercept", "yt-1", "xt-1", "yt-2", "xt-2")
+globalfit = global_qr(taus = tau.grid, phi = phi, X = Xmat1, y = Yvec, lambda=0)
 
 plot(tau.grid, alpha0(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, globalfit$bhat[1,], lwd=2, col = rgb(0,0,0,.7))
@@ -155,7 +158,7 @@ lines(tau.grid, globalfit$bhat[3,], lwd=2, col = rgb(0,0,0,.7))
 # Estimate qadl time series coefficients using qrcm
 k.user = 3
 p = length(tau.grid)
-fo3o = piqr(Yvec~Xmat, formula.p = ~slp(p,k=k.user), lambda = 10)
+fo3o = piqr(Yvec~Xmat1, formula.p = ~slp(p,k=k.user), lambda = 10)
 fo3o$coefficients$lambda1
 fo4o=slp(tau.grid,k=k.user)
 PHI = cbind(1,fo4o)
@@ -196,4 +199,4 @@ plot(tau.grid, ssrconquer_mean, type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, ssrglobal_mean, lwd=2, col = rgb(0,0,0,.7))
 lines(tau.grid, ssrqr_mean, lwd=2, col = rgb(0,1,0,.7))
 
-cbind(mean(ssrqr),mean(ssrconquer), mean(ssrglobal), mean(ssrpiqr))
+cbind(mean(ssrqr),mean(ssrglobal), mean(ssrpiqr))

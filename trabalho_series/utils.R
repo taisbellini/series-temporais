@@ -10,7 +10,7 @@ library(CVXR)
 
 #### Objective function ####
 
-R = function(a, Y, X, TAUS, phi, lambda){
+R = function(a, Y, X, TAUS, phi){
   B = a%*%phi # candidate optimizer
   R.eval = (2*TAUS-1)*(Y-X%*%B) + abs(Y-X%*%B)
   return(sum(R.eval)) # mean of the preceding objective functions
@@ -21,15 +21,13 @@ R = function(a, Y, X, TAUS, phi, lambda){
 ### Run one experiment estimating using the traditional qr estimator and the proposed one
 ### Save ahat and bhat found
 
-penalty = function(a){
-  paste("a in penalty", value(a))
+penalty = function(a, lambda=0){
   w = weights(a)
   a_norm = numeric()
   for (d in 1:nrow(a)){
     a_norm[d] = value(cvxr_norm(a[d,]))
   }
-  pen = sum(w*a_norm)
-  paste("penalty function: ", pen)
+  pen = lambda*sum(w*a_norm)
   return(pen)
 }
 
@@ -40,7 +38,6 @@ weights = function(a){
     aj = value(cvxr_norm(a[j,]))
     w[j] = 1/aj*(exp(-0.5))
   }
-  paste("weigths: ", w)
   return(w)
 }
 
@@ -56,7 +53,7 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
   TAUS = matrix(rep(taus,N),N,M, byrow = TRUE)
   
   a = Variable(D,L)
-  objective = R(a, Y, X, TAUS, phi, lambda) + lambda*penalty(a)
+  objective = R(a, Y, X, TAUS, phi) + penalty(a, lambda)
   problem = Problem(Minimize(objective))
   result = solve(problem)
   ahat = result$getValue(a)
