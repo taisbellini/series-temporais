@@ -21,7 +21,7 @@ R = function(a, Y, X, TAUS, phi){
 ### Run one experiment estimating using the traditional qr estimator and the proposed one
 ### Save ahat and bhat found
 
-penalty = function(a, lambda=0){
+penalty = function(a, lambda=0, lags=1){
   w = weights(a)
   a_norm = numeric()
   for (d in 1:nrow(a)){
@@ -32,17 +32,25 @@ penalty = function(a, lambda=0){
 }
 
 #TODO test the norm for aj here as well
-weights = function(a){
+weights = function(a, lags=1){
   w = numeric()
+  lag_penalty = numeric()
+  lag_penalty[1] = 1
+  if(lags > 1){
+    for(l in 2:lags){
+      lag_penalty[l] = lag_penalty[l-1] + 1
+    }
+  }
+  lag_penalty = c(lag_penalty, lag_penalty)
   for (j in 1:nrow(a)){
     aj = value(cvxr_norm(a[j,]))
-    w[j] = 1/aj*(exp(-0.5))
+    w[j] = 1/(aj*(exp(-0.5*lag_penalty[j])))
   }
   return(w)
 }
 
 #todo - optimize via optim
-global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambda = 0){
+global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambda = 0, lags=1){
   # Get parameters
   M = length(taus)
   L = nrow(phi)
@@ -53,7 +61,7 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
   TAUS = matrix(rep(taus,N),N,M, byrow = TRUE)
   
   a = Variable(D,L)
-  objective = R(a, Y, X, TAUS, phi) + penalty(a, lambda)
+  objective = R(a, Y, X, TAUS, phi) + penalty(a, lambda, lags)
   problem = Problem(Minimize(objective))
   result = solve(problem)
   ahat = result$getValue(a)
@@ -94,8 +102,6 @@ global_qr_uni = function(phi = phi){
     "bhat" = bhat
   ))
 }
-
-
 
 
 
