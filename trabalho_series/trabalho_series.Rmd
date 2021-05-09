@@ -42,6 +42,11 @@ output:
   rticles::ims_article:
     journal: aoas # aap, aoas, aop, aos, sts. See documentation
     toc: false # Please use for articles with 50 pages and more
+header-includes:
+  - \DeclareMathOperator{\EX}{\mathbb{E}}
+  - \DeclareMathOperator{\Z}{\mathbb{Z}}
+  - \DeclareMathOperator{\R}{\mathbb{R}}
+  - \DeclareMathOperator*{\argmax}{arg\,max}
 ---
 
 # Introduction
@@ -64,7 +69,7 @@ Quantile regression, introduced in @Koenker1978, provides an estimation of the c
 
 In @Koenker2005, the Quantile Autoregressive Model (QAR) is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models. (Mention Galvao)
 
-In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we need will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or AdaLASSO, we might have different variables selected for each $\tau$. @Sottile2020 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. With this approach, it is possible to perform a global selection of variables for a given grid of quantiles. @Sottile2020 studies global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
+In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or AdaLASSO, we might have different variables selected for each $\tau$. @Sottile2020 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. With this approach, it is possible to perform a global selection of variables for a given grid of quantiles. @Sottile2020 studies global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
 
 In this work we propose a quantile regression of a time series model with i.i.d. errors applying the global coefficient estimation approach given in @Sottile2020. Furthermore, since we are in a time series context, the variable selection penalization can be better explored, for example, applying higher penalties to higher lags, as proposed in @Konzen2016. The paper is organizes as follows: ...
 
@@ -149,7 +154,7 @@ $$
 $$
 where $j = 1, \dots,D$ and $D$ is the number of covariates of the model. $\varphi$ will have dimensions $Q\times(k+1)$, so each covariate has $k+1$ associated parameters. 
 
-## Estimation
+### Estimation
 
 Define $\varphi(\tau)$ a set of $L$ known functions of $\tau$, with $L = 1,2,\dots$, and $\delta$ a matrix with dimensions $D \times L$, where $D$ is the number of covariates of the model. Now, consider the following linear parametrization: 
 
@@ -179,7 +184,7 @@ Since $\varphi(\tau)$ is known, our goal is to find $\delta$ that minimizes the 
 \end{equation}
 
 
-## Variable selection
+### Variable selection
 
 To perform a LASSO variable selection, equation \ref{eq:betafunc2} is modified to introduce a $l^1$-norm penalizing factor (@Sottile2020):
 
@@ -196,15 +201,76 @@ An alternative to overcome the inconsistencies that LASSO selection can present 
 \label{eq:betafuncpenAda}
 \end{equation}
 
-In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to proposing the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAda}, $\omega_j = \left[\left(\sum_{h=1}^L|\hat{\delta_{jh}}|\right)e^{-\alpha t}\right]^{-p}$.
+(grouplasso)
+
+In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAda}, $\omega_j = \left[\left(\sum_{h=1}^L|\hat{\delta_{jh}}|\right)e^{-\alpha t}\right]^{-p}$.
 
 
 # Methodology
 
-- Monte Carlo
-- Generate QADL scenarios using the unit square approach
-- global estimation using Sottile with WLadaLASSO penalization
+## Simulation
 
+As stated in Section 2, when studying quantile regression, we need to assume certain restrictions to avoid situations like quantile-crossing. To allow  more flexibility on the $\beta(U_t)$ parameters, we usually restrict the support of the covariates to be bounded in $[0, +\infty]$. In a time series context, where we are modeling a process like \ref{eq:adltau}, we need to impose these restriction not only to the right side of the equation, as usually enough in linear quantile regression, but also in the response variable, as $Y_t$ and $Y_{t-1}$ are equal in distribution. To simulate \ref{eq:adltau} ensuring that the right-hand side of the equation is monotone and increasing in $U_t$, we will use a family of hyperplanes, as discussed in @Horta2021. 
+
+Consider $v_d:(0,1)\rightarrow \R$ where $d\in{0,1}^2$ as non-decreasing and left-continuous functions that satisfy: 
+
+\begin{longlist}
+\item[1.]
+$v_{11} = v_{10} +v_{01} - v_{00}$
+\item[2.]
+$\tau\rightarrow v_{11}(\tau)$ is non-decreasing.
+\end{longlist}
+
+Now, if $\mathbf{X}$ is a random vector in ${\R}^3$ and $U \sim U(0,1)$ is a scalar random variable independent of $\mathbf{X}$, then we can define the random variable $Y$ as
+$$
+Y = v_{00}(U) + (v_{10}(U)-v_{00}(U))X_2 + (v_{01}(U) - v_{00}(U))X_3 
+$$
+and it will satisfy, for any $\tau \in (0,1)$ and all $x$,  
+$$
+Q_{Y|X}(\tau|x) = \beta_0(\tau) +  \beta_1(\tau)x_2 + \beta_2(\tau)x_3
+$$
+where $\beta_0(\tau) = v_{00}$,  $\beta_1(\tau) = v_{10}-v_{00}$ and $\beta_2(\tau) = v_{01} - v_{00}$.
+
+### The generated QADL models
+
+To study the proposed estimator, we simulate the Y variable with the following model:
+$$
+Q_{Y_t}(U_t|\Im_{t-1}) = c(U_t) + \alpha_1(U_t)Y_{t-1} + \theta_1(U_t)X_{t-1}
+$$
+and 
+$$
+Q_{X_t}(U_t|\Im_{t-1}) = c(U_t) + \alpha_1(U_t)X_{t-1} + \theta_1(U_t)Y_{t-1}
+$$
+where $v_{00}(\tau) = QBeta(\tau,3,1)$, $v_{10}(\tau) = QBeta(\tau,1,3)$, $v_{01}(\tau) = QBeta(\tau,5,1)$, $c(U_t) = v_{00}(U_t)$, $\alpha_1(U_t) = v_{10}(U_t) - v_{00}(U_t)$ and $\theta_1(U_t) = v_{01}(U_t) - v_{00}(U_t)$.
+
+(graphs of Y characteristics)
+
+## Estimation and evaluation
+
+To globally estimate the functions $c(\tau)$, $\alpha_1(\tau)$ and $\theta_1(\tau)$ for a given grid of $\tau$s, the CVXR @cvxr2020 R-package for convex optimization was used to minimize the objective function described in \ref{eq:betafuncpenAda}. 
+
+To test the proposed approach, we used 3 Monte Carlo simulations with 200 replications:
+
+\begin{longlist}
+\item[11]
+A simulated dataset with only one Y_{t-1} and X_{t-1} as covariates;
+\item[2.]
+A dataset with two lags of each covariate Y and X;
+\item[3.]
+A dataset with 10 lags of each covariate Y and X;
+\end{longlist}
+
+We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection. We compared the results with a regular quantile regression approach, the piqr function without weights implemented in @Sottile2020.
+The metrics used were SSR on two dimesions: by variable and quantile.
+
+
+
+- Monte Carlo
+- global estimation using Sottile with WLadaLASSO penalization
+- Evaluation
+
+
+# Results
 
 ## Lists
 
