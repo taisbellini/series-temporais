@@ -206,14 +206,14 @@ The $\delta$ parameter being estimated is a $D \times L$ matrix, where D is the 
 
 \begin{equation}
 \hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\omega_j\Vert\delta_{j}\Vert
-\label{eq:betafuncpenAdaGrouped}
+\label{eq:betafuncpenAdaGroup}
 \end{equation}
 where 
 $$
 \Vert\delta_{j}\Vert = \sqrt{\sum_{h=1}^L\delta_{j,h}^2}
 $$
 
-In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGrouped}, $\omega_j = \left(\Vert\hat{\delta}_{j}\Vert e^{-\alpha t}\right)^{-p}$.
+In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGroup}, $\omega_j = \left(\Vert\hat{\delta}_{j}\Vert e^{-\alpha t}\right)^{-p}$.
 
 
 # Methodology
