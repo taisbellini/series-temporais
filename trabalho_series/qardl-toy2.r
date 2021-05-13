@@ -110,6 +110,8 @@ plot(Y[2:T]~Z[1:(T-1)], pch=16, col=rgb(0,0,0,.4))
 hist(Y, border=NA, breaks="FD")
 ts.plot(Y)
 
+adf.test(Y)
+
 # True and estimated functional parameters
 
 # quantile regression
@@ -120,18 +122,29 @@ Yvec_lags = Y[3:T]
 Xmat_lags = cbind(Y[1:(T-1)], Z[1:(T-1)], c(NA, Y[1:(T-2)]), c(NA, Z[1:(T-2)]))[-1,]
 colnames(Xmat_lags) = c("Yt-1", "Xt-1", "Yt-2", "Xt-2")
 
+M = length(tau.grid)
+
+real_coefs = cbind(alpha0(tau.grid), alpha1(tau.grid), theta1(tau.grid), rep(0,M), rep(0,M), rep(1, M))
+colnames(real_coefs) = c("Intercept", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Method")
+
 qrfit = rq(Yvec_lags~Xmat_lags, tau = tau.grid)
-plot(tau.grid, alpha0(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+qrfit_coefs = cbind(t(coef(qrfit)), rep(2,M))
+colnames(qrfit_coefs) = colnames(real_coefs)
+
+plot(tau.grid, real_coefs[,1], type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, coef(qrfit)[1,], lwd=2, col = rgb(0,0,0,.7))
 
-plot(tau.grid, alpha1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+plot(tau.grid, real_coefs[,2], type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, coef(qrfit)[2,], lwd=2, col = rgb(0,0,0,.7))
 
-plot(tau.grid, theta1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+plot(tau.grid, real_coefs[,3], type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, coef(qrfit)[3,], lwd=2, col = rgb(0,0,0,.7))
 
-mean(coef(qrfit)[4,])
-mean(coef(qrfit)[5,])
+plot(tau.grid, real_coefs[,4], type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, coef(qrfit)[4,], lwd=2, col = rgb(0,0,0,.7))
+
+plot(tau.grid, real_coefs[,5], type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, coef(qrfit)[5,], lwd=2, col = rgb(0,0,0,.7))
 
 # kernel estimation
 conquerfit = sapply(tau.grid, function(tau) conquer(Xmat_lags,Yvec_lags,tau=tau)$coeff)
@@ -147,11 +160,37 @@ lines(tau.grid, conquerfit[3,], lwd=2, col = rgb(0,0,0,.7))
 mean(conquerfit[4,])
 mean(conquerfit[5,])
 
+# global coefficients Sottile
+# Estimate qadl time series coefficients using qrcm
+k.user = 3
+p = length(tau.grid)
+fo3o = piqr(Yvec_lags~Xmat_lags, formula.p = ~slp(p,k=k.user), lambda = 10)
+fo4o=slp(tau.grid,k=k.user)
+PHI = cbind(1,fo4o)
+BETA = fo3o$coef$lambda1%*%t(PHI)
+piqr_coefs = cbind(t(BETA), rep(3,M))
+colnames(piqr_coefs) = colnames(real_coefs)
+Ypred = cbind(1,Xmat)%*%BETA
+
+plot(tau.grid, alpha0(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, BETA[1,], lwd=2, col = rgb(0,0,0,.7))
+
+plot(tau.grid, alpha1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, BETA[2,], lwd=2, col = rgb(0,0,0,.7))
+
+plot(tau.grid, theta1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, BETA[3,], lwd=2, col = rgb(0,0,0,.7))
+
+mean(BETA[4,])
+mean(BETA[5,])
 
 # global coefficients proposed
 phi = phi_generator(3, tau.grid)
 Xmat_lags1 = cbind(rep(1,nrow(Xmat_lags)), Xmat_lags)
 globalfit = global_qr(taus = tau.grid, phi = phi, X = Xmat_lags1, y = Yvec_lags, lambda=10, lags = 2)
+global_coefs = cbind(t(globalfit$bhat), rep(4,M))
+colnames(global_coefs) = colnames(real_coefs)
+
 
 plot(tau.grid, alpha0(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
 lines(tau.grid, globalfit$bhat[1,], lwd=2, col = rgb(0,0,0,.7))
@@ -165,48 +204,71 @@ lines(tau.grid, globalfit$bhat[3,], lwd=2, col = rgb(0,0,0,.7))
 mean(globalfit$bhat[4,])
 mean(globalfit$bhat[5,])
 
+## Plot results 
+coefs_results = data.frame(rbind(real_coefs, qrfit_coefs, piqr_coefs, global_coefs))
+coefs_results$Method = as.factor(coefs_results$Method)
+levels(coefs_results$Method) = c("Real", "QR", "piqr", "Global")
 
-# global coefficients Sottile
-# Estimate qadl time series coefficients using qrcm
-k.user = 3
-p = length(tau.grid)
-fo3o = piqr(Yvec_lags~Xmat_lags1, formula.p = ~slp(p,k=k.user), lambda = 10)
-fo4o=slp(tau.grid,k=k.user)
-PHI = cbind(1,fo4o)
-BETA = fo3o$coef$lambda1%*%t(PHI)
-Ypred = cbind(1,Xmat)%*%BETA
 
-# True and estimated coefficients
-plot(tau.grid, alpha0(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
-lines(tau.grid, BETA[1,], lwd=2, col = rgb(0,0,0,.7))
+require(reshape2)
+require(ggplot2)
+coefs_results.m <- melt(coefs_results, id.var = "Method")
+ggplot(data = coefs_results.m, aes(x=variable, y=value, fill=Method)) + geom_boxplot()
 
-plot(tau.grid, alpha1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
-lines(tau.grid, BETA[2,], lwd=2, col = rgb(0,0,0,.7))
 
-plot(tau.grid, theta1(tau.grid), type = 'l', col='blue', lwd=2, lty='dotted')
-lines(tau.grid, BETA[3,], lwd=2, col = rgb(0,0,0,.7))
+# Squared error 
 
-mean(BETA[4,])
-mean(BETA[5,])
+sr_qr = (real_coefs - qrfit_coefs)^2
+sr_qr[,6] = rep(2,M)
+sr_piqr = (real_coefs - piqr_coefs)^2
+sr_piqr[,6] = rep(3,M)
+sr_global = (real_coefs - global_coefs)^2
+sr_global[,6] = rep(4,M)
 
-# ssr comparison
-ssrqr = cbind((alpha0(tau.grid) - coef(qrfit)[1,])^2, (alpha1(tau.grid) - coef(qrfit)[2,])^2, (theta1(tau.grid) - coef(qrfit)[3,])^2, (0 - coef(qrfit)[4,])^2, (0 - coef(qrfit)[5,])^2)
-ssrconquer = cbind((alpha0(tau.grid) - conquerfit[1,])^2, (alpha1(tau.grid) - conquerfit[2,])^2, (theta1(tau.grid) - conquerfit[3,])^2, (0 - conquerfit[4,])^2, (0 - conquerfit[5,])^2)
-ssrglobal = cbind((alpha0(tau.grid) - globalfit$bhat[1,])^2, (alpha1(tau.grid) - globalfit$bhat[2,])^2, (theta1(tau.grid) - globalfit$bhat[3,])^2, (0 - globalfit$bhat[4,])^2, (0 - globalfit$bhat[5,])^2)
-ssrpiqr = cbind((alpha0(tau.grid) - BETA[1,])^2, (alpha1(tau.grid) - BETA[2,])^2, (theta1(tau.grid) - BETA[3,])^2, (0 - BETA[4,])^2, (0 - BETA[5,])^2)
+plot(tau.grid, sr_qr[,1], type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, sr_piqr[,1], lwd=2, col = rgb(0,1,0,.7))
+lines(tau.grid, sr_global[,1], lwd=2, col = rgb(0,0,0,.7))
 
-plot(tau.grid, ssrqr[,1], type = 'l', col='blue', lwd=2, lty='dotted')
-lines(tau.grid, ssrconquer[,1], lwd=2, col = rgb(0,1,0,.7))
-lines(tau.grid, ssrglobal[,1], lwd=2, col = rgb(0,0,0,.7))
+plot(tau.grid, sr_qr[,2], type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, sr_piqr[,2], lwd=2, col = rgb(0,1,0,.7))
+lines(tau.grid, sr_global[,2], lwd=2, col = rgb(0,0,0,.7))
 
-plot(tau.grid, ssrconquer[,2], type = 'l', col='blue', lwd=2, lty='dotted')
-lines(tau.grid, ssrglobal[,2], lwd=2, col = rgb(0,0,0,.7))
+plot(tau.grid, sr_qr[,3], type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, sr_piqr[,3], lwd=2, col = rgb(0,1,0,.7))
+lines(tau.grid, sr_global[,3], lwd=2, col = rgb(0,0,0,.7))
 
-plot(tau.grid, ssrconquer[,3], type = 'l', col='blue', lwd=2, lty='dotted')
-lines(tau.grid, ssrglobal[,3], lwd=2, col = rgb(0,0,0,.7))
+plot(tau.grid, sr_qr[,4], type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, sr_piqr[,4], lwd=2, col = rgb(0,1,0,.7))
+lines(tau.grid, sr_global[,4], lwd=2, col = rgb(0,0,0,.7))
+
+plot(tau.grid, sr_qr[,5], type = 'l', col='blue', lwd=2, lty='dotted')
+lines(tau.grid, sr_piqr[,5], lwd=2, col = rgb(0,1,0,.7))
+lines(tau.grid, sr_global[,5], lwd=2, col = rgb(0,0,0,.7))
+
+sr_coefs = data.frame(rbind(sr_qr, sr_piqr, sr_global))
+sr_coefs$Method = as.factor(sr_coefs$Method)
+
+sr.m <- melt(sr_coefs, id.var = "Method")
+ggplot(data = sr.m, aes(x=variable, y=value, fill=Method)) + geom_boxplot()
+
+# Sum of squared errors
+ssr_qr = apply(sr_qr, 2, sum)
+ssr_qr[6] = 2
+ssr_piqr = apply(sr_piqr, 2, sum)
+ssr_piqr[6] = 3
+ssr_global = apply(sr_global, 2, sum)
+ssr_global[6] = 4
+
+ssr_coefs = data.frame(rbind(ssr_qr, ssr_piqr, ssr_global))
+ssr_coefs$Method = as.factor(ssr_coefs$Method)
+levels(ssr_coefs$Method) = c("QR", "piqr", "Global")
+
+ssr.m <- melt(ssr_coefs, id.var = "Method")
+ggplot(data = ssr.m, aes(x=variable, y=value)) + geom_point(aes(colour=Method))
+
+#means(TODO)
 
 ssrqr_mean = apply(ssrqr, 2, mean)
-ssrconquer_mean = apply(ssrconquer, 2, mean)
 ssrglobal_mean = apply(ssrglobal, 2, mean)
 ssrpiqr_mean = apply(ssrpiqr, 2, mean)
 
