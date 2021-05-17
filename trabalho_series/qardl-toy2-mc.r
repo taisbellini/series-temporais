@@ -93,7 +93,7 @@ Q = function(tau, Y.current, Z.current) {
 }
 
 # Simulating the sample paths:
-nrep = 10
+nrep = 100
 
 tau.grid = seq(from = .01, to = .99, by = .02)
 M = length(tau.grid)
@@ -210,9 +210,13 @@ mse_df = rbind(mse_df, data.frame("mse" = apply(mse[[3]], 1, mean), "var" = rep(
 mse_df = rbind(mse_df, data.frame("mse" = apply(mse[[4]], 1, mean), "var" = rep(4, 3), "method"= c(1,2,3)))
 mse_df = rbind(mse_df, data.frame("mse" = apply(mse[[5]], 1, mean), "var" = rep(5, 3), "method"= c(1,2,3)))
 
+mse_df$method = as.factor(mse_df$method)
+mse_df$var = as.factor(mse_df$var)
+levels(mse_df$method) = c("QR", "piqr", "Global")
+levels(mse_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2")
 
 library(reshape2)
 mse.m <- melt(mse_df, id.vars  = c("method", "var"))
-ggplot(data = mse.m, aes(x=as.factor(var), y=value)) + geom_point(aes(colour=as.factor(method)))
+ggplot(data = mse.m, aes(x=var, y=value)) + geom_point(aes(colour=method)) + xlab("Variable") + ylab("MSE")
 
 
