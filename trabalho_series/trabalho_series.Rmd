@@ -66,15 +66,15 @@ Enfim, o modelo é flexível e parcimonioso, mas requer que certas restrições 
 
 --->
 
-Quantile regression, introduced in @Koenker1978, provides an estimation of the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering an approximation for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] (More on quantile regression)
+Quantile regression, introduced in @Koenker1978, provides an estimation for the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering an approximation for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] (More on quantile regression)
 
-In @Koenker2005, the Quantile Autoregressive Model (QAR) is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models. (Mention Galvao)
+In @Koenker2005, the Quantile Autoregressive (QAR) model is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models. @Galvao2013 generalize the QAR model to a framework that introduces exogenous stationary covariates, the Quantile Autoregressive Distributed Lag (QADL) model, demonstrating it can deliver good insights on asymmetric dynamics.
 
 In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or AdaLASSO, we might have different variables selected for each $\tau$. @Sottile2020 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. With this approach, it is possible to perform a global selection of variables for a given grid of quantiles. @Sottile2020 studies global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
 
-In this work we propose a quantile regression of a time series model with i.i.d. errors applying the global coefficient estimation approach given in @Sottile2020. Furthermore, since we are in a time series context, the variable selection penalization can be better explored, for example, applying higher penalties to higher lags, as proposed in @Konzen2016. The paper is organizes as follows: ...
+In this work, we propose a global coefficient estimation and variable selection method based on the estimator presented in @Sottile2020. The proposal introduces the group lasso penalty, suggested in @Yuan2006, and applied in a quantile autoregressive distributed lag (QARDL) model. Furthermore, since we are in a time series context, the variable selection penalization applies higher penalties to higher lags, as proposed in @Konzen2016. The paper is organizes as follows: Chapter \ref{fundamentals} describes the main concepts used in this work and the proposed estimator, Chapter \ref{methodology} explains the how the QARDL process was generated and how the simulation process was setup, Chapter \ref{results} analyses the results of the simulation and comparisson with other methods, and Chapter \ref{conclusion} provides a final discussion and enlightens future work.
 
-# Fundamentals
+# Fundamentals \label{fundamentals}
 
 In this section, the fundamental concepts used in this work are presented. We start defining the Quantile Autoregressive Distributed Lag Model, describe the proposed estimator and express the variable selection method.
 
@@ -85,7 +85,7 @@ Consider an autoregressive-distributed lag model described by the equation:
 Y_t = c + \alpha_1Y_{t-1} +  \cdots + \alpha_pY_{t-p} + \theta_1\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q\mathbf{X}_{t-q}^\intercal + \varepsilon_t 
 \label{eq:adl}
 \end{equation}
-where $t = 1, ..., T$, $Y_t$ is the response variable, $Y_{t-j}$ the lag of the response variable and $\mathbf{X}_{t-q}$ is the lagged covariates vector with dimension $d$. $\varepsilon_t$ is a white noise.
+where $t = 1, ..., T$, $Y_t$ is the response variable, $Y_{t-j}$ the lag of the response variable and $\mathbf{X}_{t-q}$ is the lagged covariates vector with dimension $D$. $\varepsilon_t$ is a white noise.
 
 As in @Koenker2006, we are interested in studying a class of quantile autoregressive models which coefficients can be dependent of $\tau$. Therefore, lets consider the following process, with ${U_t}$ as a sequence of i.i.d standard uniform random variables, $c$, $\alpha$ and $\theta$ as unknown functions $[0,1] \rightarrow \mathbb{R}$ to be estimated:
 \begin{equation}
@@ -93,12 +93,13 @@ Y_t = c(U_t) + \alpha_1(U_t)Y_{t-1} +  \cdots + \alpha_p(U_t)Y_{t-p} + \theta_1(
 \label{eq:adltau}
 \end{equation}
 
-Then, given that for any monotone increasing function $g$ and standard uniform random variable $U$ the following is true:
+Then, given that for any monotone increasing function $g$ and a standard uniform random variable $U$ the following is true:
 
 $$
 Q_{g(U)}(\tau) = g(Q_U(\tau)) = g(\tau)
 $$
-and assuming the right side of the equation \ref{eq:adltau} is monotone and increasing on $U_t$, we can say that the $\tau_{th}$ conditional quantile function of $Y_t$ is:
+
+Assuming the right side of the equation \ref{eq:adltau} is monotone and increasing on $U_t$, we can say that the $\tau_{th}$ conditional quantile function of $Y_t$ is:
 
 \begin{equation}
 Q_{Y_t}(\tau|\Im_t) =  c(\tau) + \alpha_1(\tau)Y_{t-1} + \cdots + \alpha_p(\tau)Y_{t-p} + \theta_1(\tau)\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q(\tau)\mathbf{X}_{t-q}^\intercal
@@ -130,16 +131,16 @@ This representation, besides parsimonious, allows us to capture the nuances in t
 
 In a standard quantile regression (QR) method, we would estimate the $D$-dimensional vector $\beta$ for each $\tau$ one at a time minimizing the expected value of the check function $\rho_\tau$:
 $$
-\hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^n{\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b)}
+\hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^N{\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b)}
 $$
 where $\rho_\tau(v) = v(\tau - \mathbb{I}_{[v<0]})$. Thus, to find the $\beta(\tau)$ function that minimizes the loss function for all $\tau$, we have the following minimization problem:
 
 \begin{equation}
-\hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b) d\tau}
+\hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^N{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b) d\tau}
 \label{eq:betafunc}
 \end{equation}
 
-@Frumento2016 suggested a different approach: modeling the coefficient functions $\beta(\tau)$ as parametric functions of the order of the quantile. Consider $\phi$ a vector of model parameters, then we can describe the quantile function as: 
+@Frumento2016 suggested a different approach: modeling the coefficient functions $\beta(\tau)$ as parametric functions of the order of the quantile. Consider $\varphi$ a vector of model parameters, then we can describe the quantile function as: 
 
 \begin{equation}
 Q(\tau|\mathbf{Z},\varphi) = \mathbf{Z}^\intercal\beta(\tau|\varphi)
@@ -202,7 +203,7 @@ An alternative to overcome the inconsistencies that LASSO selection can present 
 \label{eq:betafuncpenAda}
 \end{equation}
 
-The $\delta$ parameter being estimated is a $D \times L$ matrix, where D is the number of covariates in the model, so a covariate is represented in a row. In this scenario, it is relevant to use the idea from @Yuan2006 to penalize the variabled in the $\delta$ matrix in a grouped manner. The grouped ada lasso estimator applies a $l^2$-norm penalization:
+The $\delta$ parameter being estimated is a $D \times L$ matrix, where D is the number of covariates in the model, so a covariate is represented in a row. In this scenario, it is relevant to use the idea from @Yuan2006 to penalize the variable in the $\delta$ matrix in a grouped manner. The adaptive group lasso estimator applies a $l^2$-norm penalization:
 
 \begin{equation}
 \hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\omega_j\Vert\delta_{j}\Vert
@@ -213,10 +214,10 @@ $$
 \Vert\delta_{j}\Vert = \sqrt{\sum_{h=1}^L\delta_{j,h}^2}
 $$
 
-In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGroup}, $\omega_j = \left(\Vert\hat{\delta}_{j}\Vert e^{-\alpha t}\right)^{-p}$.
+In a time series context, we are estimating the coefficients for each lagged variable, thus, (Park and Sakaori 2013) consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGroup}, we will have that $\omega_j = \left(\Vert\hat{\delta}_{j}\Vert e^{-\alpha t}\right)^{-p}$.
 
 
-# Methodology
+# Methodology \label{methodology}
 
 ## Simulation
 
@@ -256,6 +257,9 @@ where $v_{00}(\tau) = QBeta(\tau,3,1)$, $v_{10}(\tau) = QBeta(\tau,1,3)$, $v_{01
 ```{r, echo=FALSE, message=F, warning=F}
 set.seed(205650)
 source('qardl-gen.r')
+qardl = simulate_qardl(N = 10001)
+Y = qardl$Y
+Z = qardl$Z
 ```
 
 Figure \ref{fig:vd} illustrate how the chosen $v_d$ function behave on the grid of $\tau$'s. $v_{00}$, $v_{01}$ and $v_{10}$ are the quantile functions of the Beta distribution given the parameters described above. Then, $v_{11}$ is the resulting function of the operation $v_{10} +v_{01} - v_{00}$.
@@ -274,6 +278,7 @@ dbplot(a01,b01, title="Yt given Yt-1=0 and Xt-1=1", y_lab="v01 function")
 # Conditional density of Y[t] given Y[t-1]=0 and X[t-1]=0
 dbplot(a00,b00, title="Yt given Yt-1=0 and Xt-1=0", y_lab="v00 function")
 # Conditional density of Y[t] given Y[t-1]=1 and X[t-1]=1
+tau.grid = seq(from=.01,to=.99, by=.02)
 plot(v11(tau.grid), 1/q11(tau.grid), xlim=c(0,1), main = "Yt given Yt-1=0 and Xt-1=0", type="l", ylab="v11", xlab="tau.grid")
 ```
 
@@ -310,15 +315,21 @@ A dataset with two lags of each covariate Y and X;
 A dataset with 10 lags of each covariate Y and X;
 \end{longlist}
 
-We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection. We compared the results with a regular quantile regression approach, the piqr function without weights implemented in @Sottile2020.
-The metrics used were SSR on two dimesions: by variable and quantile.
+We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection. We compared the results with a regular quantile regression approach, the _piqr_ function without weights implemented in @Sottile2020.
+The metrics used were SSR on two dimensions: by variable and quantile.
 
 
 - Monte Carlo
 - global estimation using Sottile with WLadaLASSO penalization
 - Evaluation
 
-# Results
+# Results \label{results}
+
+## Database with one lag
+
+## Database with two lags
+
+## Database with ten lags
 
 ## Lists
 
