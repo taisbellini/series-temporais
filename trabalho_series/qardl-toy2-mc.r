@@ -7,6 +7,8 @@ library(forecast)
 library(qrcmNP)
 source('utils.R')
 
+tau.grid = seq(from = .01, to = .99, by = .02)
+
 # Value of the conditional quantile function at three
 # vertices of the unit square (v10, v01, v00 and v11)
 # Since v11 = v10 + v01 - v00 we can choose, say, v10 and v01
@@ -92,7 +94,129 @@ Q = function(tau, Y.current, Z.current) {
         alpha0(tau) + alpha1(tau) * Y.current + theta1(tau) * Z.current
 }
 
-# Simulating the sample paths:
+# Lags = 1:
+nrep = 3
+
+tau.grid = seq(from = .01, to = .99, by = .02)
+M = length(tau.grid)
+
+betas_qr_1 = betas_piqr_1 = betas_global_1 = list()
+betas_qr_1[[1]] = betas_piqr_1[[1]] = betas_global_1[[1]] = alpha0(tau.grid)
+betas_qr_1[[2]] = betas_piqr_1[[2]] = betas_global_1[[2]] = alpha1(tau.grid)
+betas_qr_1[[3]] = betas_piqr_1[[3]] = betas_global_1[[3]] = theta1(tau.grid)
+
+set.seed(205650)
+for (i in 1:nrep) {
+        # Arbitrary starting point (Y0,Z0)
+        Y0 = runif(1)
+        Z0 = runif(1)
+        
+        Y = Z = numeric()
+        Z.current = Z0
+        Y.current = Y0
+        N = 10001
+        for (t in 1:N) {
+                # Simulates Y[t] given ℱ[t-1] using the Fundamental Theorem of Simulation
+                Y[t] = Q(runif(1), Y.current, Z.current)
+                
+                Z[t] = Q(runif(1), Z.current, Y.current)
+                # Q(runif(1), Z.current, Y.current)
+                # Z[t] = runif(1,max(Y[t]-.01,0),min(Y[t]+.01,1))
+                
+                Z.current = Z[t]
+                Y.current = Y[t]
+        }
+        
+        Y = Y[-1]
+        Z = Z[-1]
+        N = length(Y)
+        
+        Yvec = Y[2:N]
+        Xmat = cbind(Y[1:(N - 1)], Z[1:(N - 1)])
+        colnames(Xmat) = c("Yt-1", "Xt-1")
+        
+        # True and estimated functional parameters
+        # quantile regression
+        real_coefs = cbind(alpha0(tau.grid), alpha1(tau.grid), theta1(tau.grid))
+        colnames(real_coefs) = c("Intercept", "Yt-1", "Xt-1")
+        
+        qrfit = rq(Yvec ~ Xmat, tau = tau.grid)
+        qrfit_coefs = coef(qrfit)
+        
+        # global coefficients Sottile
+        # Estimate qadl time series coefficients using qrcm
+        k.user = 3
+        p = M
+        fo3o = piqr(Yvec ~ Xmat, formula.p = ~ slp(p, k = k.user), lambda = 10)
+        fo4o = slp(tau.grid, k = k.user)
+        PHI = cbind(1, fo4o)
+        BETA = fo3o$coef$lambda1 %*% t(PHI)
+        piqr_coefs = BETA
+        
+        # global coefficients proposed
+        phi = phi_generator(3, tau.grid)
+        Xmat_1 = cbind(rep(1, nrow(Xmat)), Xmat)
+        globalfit = global_qr(taus = tau.grid, phi = phi, X = Xmat_1, y = Yvec, lambda = 10, lags = 1)
+        global_coefs = globalfit$bhat
+        
+        for(i in 1:nrow(global_coefs)){
+                
+                betas_qr[[i]] = rbind(betas_qr[[i]], qrfit_coefs[i,])
+                betas_piqr[[i]] = rbind(betas_piqr[[i]], piqr_coefs[i,])
+                betas_global[[i]] = rbind(betas_global[[i]], global_coefs[i,])
+        }
+}
+
+
+se_qr_1 = list()
+se_piqr_1 = list()
+se_global_1 = list()
+
+for (i in 1:length(betas_qr_1)){
+        se_qr_1[[i]] = t(apply(betas_qr[[i]][-1,], 1, function(row) {(row - betas_qr[[i]][1,])^2}))
+        se_piqr_1[[i]] = t(apply(betas_piqr[[i]][-1,], 1, function(row) {(row - betas_piqr[[i]][1,])^2}))
+        se_global_1[[i]] = t(apply(betas_global[[i]][-1,], 1, function(row) {(row - betas_global[[i]][1,])^2}))
+}
+
+mse_1 = list()
+for (i in 1:length(betas_global_1)){
+        mse_1[[i]] = apply(se_qr_1[[i]], 2, mean)
+        mse_1[[i]] = rbind(mse_1[[i]], apply(se_piqr_1[[i]], 2, mean))
+        mse_1[[i]] = rbind(mse_1[[i]], apply(se_global_1[[i]], 2, mean))
+}
+
+for (i in 1:length(mse_1)){
+        write.csv2(se_qr_1, file = paste("se_qr_1", i, ".csv"))
+        write.csv2(se_piqr_1, file = paste("se_piqr_1", i, ".csv"))
+        write.csv2(se_global_1, file = paste("se_global_1", i, ".csv"))
+        write.csv2(mse_1, file = paste("mse_1", i, ".csv"))
+}
+
+mse_taus_df_1 <- lapply(seq_along(mse_1), function(i) {
+        df = data.frame(mse_1[[i]])
+        df$var = rep(i, nrow(mse_1[[i]]))
+        df$method = c(1,2,3)
+        return(df)
+})
+
+mse_taus_df_1$method = as.factor(mse_taus_df_1$method)
+mse_taus_df_1$var = as.factor(mse_taus_df_1$var)
+
+mse_df_1 = data.frame("mse" = apply(mse_1[[1]], 1, mean), "var" = rep(1, 3), "method" = c(1,2,3))
+mse_df_1 = rbind(mse_df_1, data.frame("mse" = apply(mse_1[[2]], 1, mean), "var" = rep(2, 3), "method"= c(1,2,3)))
+mse_df_1 = rbind(mse_df_1, data.frame("mse" = apply(mse_1[[3]], 1, mean), "var" = rep(3, 3), "method"= c(1,2,3)))
+
+mse_df_1$method = as.factor(mse_df_1$method)
+mse_df_1$var = as.factor(mse_df_1$var)
+levels(mse_df_1$method) = c("QR", "piqr", "Global")
+levels(mse_df_1$var) = c("c", "Yt-1", "Xt-1")
+
+library(reshape2)
+mse.m_1 <- melt(mse_df_1, id.vars  = c("method", "var"))
+ggplot(data = mse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method)) + xlab("Variable") + ylab("MSE")
+
+
+# Lags = 2:
 nrep = 100
 
 tau.grid = seq(from = .01, to = .99, by = .02)
@@ -128,9 +252,6 @@ for (i in 1:nrep) {
         Y = Y[-1]
         Z = Z[-1]
         N = length(Y)
-        
-        Yvec = Y[2:N]
-        Xmat = cbind(Y[1:(N - 1)], Z[1:(N - 1)])
         
         Yvec_lags = Y[3:N]
         Xmat_lags = cbind(Y[1:(N - 1)], Z[1:(N - 1)], c(NA, Y[1:(N - 2)]), c(NA, Z[1:(N -2)]))[-1, ]
@@ -219,4 +340,142 @@ library(reshape2)
 mse.m <- melt(mse_df, id.vars  = c("method", "var"))
 ggplot(data = mse.m, aes(x=var, y=value)) + geom_point(aes(colour=method)) + xlab("Variable") + ylab("MSE")
 
+
+# Lags = 10
+
+nrep = 1
+
+tau.grid = seq(from = .01, to = .99, by = .02)
+M = length(tau.grid)
+
+betas_qr_10 = betas_piqr_10 = betas_global_10 = list()
+betas_qr_10[[1]] = betas_piqr_10[[1]] = betas_global_10[[1]] = alpha0(tau.grid)
+betas_qr_10[[2]] = betas_piqr_10[[2]] = betas_global_10[[2]] = alpha1(tau.grid)
+betas_qr_10[[3]] = betas_piqr_10[[3]] = betas_global_10[[3]] = theta1(tau.grid)
+
+for (i in 4:10){
+        betas_qr_10[[i]] = betas_piqr_10[[i]] = betas_global_10[[i]] = rep(0,M)
+}
+
+set.seed(205651)
+for (i in 1:nrep) {
+        # Arbitrary starting point (Y0,Z0)
+        Y0 = runif(1)
+        Z0 = runif(1)
+        
+        Y = Z = numeric()
+        Z.current = Z0
+        Y.current = Y0
+        N = 10001
+        for (t in 1:N) {
+                # Simulates Y[t] given ℱ[t-1] using the Fundamental Theorem of Simulation
+                Y[t] = Q(runif(1), Y.current, Z.current)
+                
+                Z[t] = Q(runif(1), Z.current, Y.current)
+                # Q(runif(1), Z.current, Y.current)
+                # Z[t] = runif(1,max(Y[t]-.01,0),min(Y[t]+.01,1))
+                
+                Z.current = Z[t]
+                Y.current = Y[t]
+        }
+        
+        Y = Y[-1]
+        Z = Z[-1]
+        N = length(Y)
+        
+        Yvec_lags_10 = Y[11:N]
+        Xmat_lags_10 = cbind(Y[1:(N - 1)], Z[1:(N - 1)])
+        for (i in 2:10){
+                Xmat_lags_10 = cbind(Xmat_lags_10, c(NA, Y[1:(N - i)]), c(NA, Z[1:(N -i)]))[-1, ] 
+        }
+        colnames(Xmat_lags_10) = c("Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                                   "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                                   "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+        
+        # True and estimated functional parameters
+        # quantile regression
+        real_coefs = cbind(alpha0(tau.grid), alpha1(tau.grid), theta1(tau.grid))
+        for (i in 2:10){
+                real_coefs=cbind(real_coefs, rep(0, M), rep(0, M))
+        }
+        colnames(real_coefs) = c("Intercept", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                                 "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                                 "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+        
+        qrfit = rq(Yvec_lags_10 ~ Xmat_lags_10, tau = tau.grid)
+        qrfit_coefs = coef(qrfit)
+        
+        # global coefficients Sottile
+        # Estimate qadl time series coefficients using qrcm
+        k.user = 3
+        p = M
+        fo3o = piqr(Yvec_lags_10 ~ Xmat_lags_10, formula.p = ~ slp(p, k = k.user), lambda = 10)
+        fo4o = slp(tau.grid, k = k.user)
+        PHI = cbind(1, fo4o)
+        BETA = fo3o$coef$lambda1 %*% t(PHI)
+        piqr_coefs = BETA
+        
+        # global coefficients proposed
+        phi = phi_generator(3, tau.grid)
+        Xmat_lags1_10 = cbind(rep(1, nrow(Xmat_lags_10)), Xmat_lags_10)
+        globalfit = global_qr(taus = tau.grid, phi = phi, X = Xmat_lags1_10, y = Yvec_lags_10, lambda = 10, lags = 10)
+        global_coefs = globalfit$bhat
+        
+        for(i in 1:nrow(global_coefs)){
+                
+                betas_qr_10[[i]] = rbind(betas_qr_10[[i]], qrfit_coefs[i,])
+                betas_piqr_10[[i]] = rbind(betas_piqr_10[[i]], piqr_coefs[i,])
+                betas_global_10[[i]] = rbind(betas_global_10[[i]], global_coefs[i,])
+        }
+}
+
+
+se_qr_10 = list()
+se_piqr_10 = list()
+se_global_10 = list()
+
+for (i in 1:length(betas_qr_10)){
+        se_qr_10[[i]] = t(apply(betas_qr_10[[i]][-1,], 1, function(row) {(row - betas_qr_10[[i]][1,])^2}))
+        se_piqr_10[[i]] = t(apply(betas_piqr_10[[i]][-1,], 1, function(row) {(row - betas_piqr_10[[i]][1,])^2}))
+        se_global_10[[i]] = t(apply(betas_global_10[[i]][-1,], 1, function(row) {(row - betas_global_10[[i]][1,])^2}))
+}
+
+mse_10 = list()
+for (i in 1:length(betas_global_10)){
+        mse_10[[i]] = apply(se_qr_10[[i]], 2, mean)
+        mse_10[[i]] = rbind(mse_10[[i]], apply(se_piqr_10[[i]], 2, mean))
+        mse_10[[i]] = rbind(mse_10[[i]], apply(se_global_10[[i]], 2, mean))
+}
+
+for (i in 1:length(mse_10)){
+        write.csv2(se_qr_10, file = paste("se_qr_10_", i, ".csv"))
+        write.csv2(se_piqr_10, file = paste("se_piqr_10_", i, ".csv"))
+        write.csv2(se_global_10, file = paste("se_global_10_", i, ".csv"))
+        write.csv2(mse_10, file = paste("mse_10_", i, ".csv"))
+}
+
+mse_taus_df_10 <- lapply(seq_along(mse_10), function(i) {
+        df = data.frame(mse_10[[i]])
+        df$var = rep(i, nrow(mse_10[[i]]))
+        df$method = c(1,2,3)
+        return(df)
+})
+
+mse_taus_df_10$method = as.factor(mse_taus_df_10$method)
+mse_taus_df_10$var = as.factor(mse_taus_df_10$var)
+
+mse_df_10 = data.frame("mse" = apply(mse_10[[1]], 1, mean), "var" = rep(1, 3), "method" = c(1,2,3))
+mse_df_10 = rbind(mse_df_10, data.frame("mse" = apply(mse_10[[2]], 1, mean), "var" = rep(2, 3), "method"= c(1,2,3)))
+mse_df_10 = rbind(mse_df_10, data.frame("mse" = apply(mse_10[[3]], 1, mean), "var" = rep(3, 3), "method"= c(1,2,3)))
+
+mse_df_10$method = as.factor(mse_df_10$method)
+mse_df_10$var = as.factor(mse_df_10$var)
+levels(mse_df_10$method) = c("QR", "piqr", "Global")
+levels(mse_df_10$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                          "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                          "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+
+library(reshape2)
+mse.m_10 <- melt(mse_df_10, id.vars  = c("method", "var"))
+ggplot(data = mse.m_10, aes(x=var, y=value)) + geom_point(aes(colour=method)) + xlab("Variable") + ylab("MSE")
 
