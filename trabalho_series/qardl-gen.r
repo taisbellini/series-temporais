@@ -1,14 +1,6 @@
 # This code simulates a sample path of size T from a simple QARDL(1,1) model:
 # Q(𝜏| ℱ[t-1]) = α₀(𝜏) + α₁(𝜏)*Y[t-1] + θ₁(𝜏)*Z[t-1]
 
-# set.seed(1)
-library(quantreg)
-library(conquer)
-library(forecast)
-library(qrcmNP)
-
-tau.grid = seq(from=.01,to=.99, by=.02)
-
 # Value of the conditional quantile function at three
 # vertices of the unit square (v10, v01, v00 and v11)
 # Since v11 = v10 + v01 - v00 we can choose, say, v10 and v01
@@ -69,25 +61,32 @@ Q = function(tau,Y.current,Z.current){
 
 # Simulating the sample paths:
 
-# Arbitrary starting point (Y0,Z0)
-Y0 = runif(1)
-Z0 = runif(1)
+simulate_qardl = function(N = 10001){
+        
+        # Arbitrary starting point (Y0,Z0)
+        Y0 = runif(1)
+        Z0 = runif(1)
+        
+        Y = Z = numeric()
+        Z.current = Z0
+        Y.current = Y0
 
-Y = Z = numeric()
-Z.current = Z0
-Y.current = Y0
-T = 10001
-for (t in 1:T){
-# Simulates Y[t] given ℱ[t-1] using the Fundamental Theorem of Simulation
- Y[t] = Q(runif(1), Y.current, Z.current)
- 
- Z[t] = Q(runif(1), Z.current, Y.current)
- # Q(runif(1), Z.current, Y.current)
- # Z[t] = runif(1,max(Y[t]-.01,0),min(Y[t]+.01,1))
- 
- Z.current = Z[t]
- Y.current = Y[t]
+        for (t in 1:N){
+        # Simulates Y[t] given ℱ[t-1] using the Fundamental Theorem of Simulation
+         Y[t] = Q(runif(1), Y.current, Z.current)
+         
+         Z[t] = Q(runif(1), Z.current, Y.current)
+         # Q(runif(1), Z.current, Y.current)
+         # Z[t] = runif(1,max(Y[t]-.01,0),min(Y[t]+.01,1))
+         
+         Z.current = Z[t]
+         Y.current = Y[t]
+        }
+        
+        Y = Y[-1]
+        Z = Z[-1]
+        return(list(
+                "Y" = Y,
+                "Z" = Z
+        ))
 }
-
-Y = Y[-1]
-Z = Z[-1]

@@ -7,7 +7,6 @@ if(!require(CVXR)) install.packages('CVXR')
 library(quantreg)
 library(CVXR)
 
-
 #### Objective function ####
 
 R = function(a, Y, X, TAUS, phi){
@@ -21,18 +20,18 @@ R = function(a, Y, X, TAUS, phi){
 ### Run one experiment estimating using the traditional qr estimator and the proposed one
 ### Save ahat and bhat found
 
-penalty = function(a, lambda=0, lags=1){
-  w = weights(a)
+penalty = function(a, lambda, lags){
+  w = weights(a, lags)
   a_norm = numeric()
   for (d in 1:nrow(a)){
-    a_norm[d] = value(cvxr_norm(a[d,]))
+    a_norm[d] = CVXR::value(cvxr_norm(a[d,]))
   }
   pen = lambda*sum(w*a_norm)
   return(pen)
 }
 
 #TODO test the norm for aj here as well
-weights = function(a, lags=1){
+weights = function(a, lags){
   w = numeric()
   lag_penalty = numeric()
   lag_penalty[1] = 1
@@ -43,7 +42,7 @@ weights = function(a, lags=1){
   }
   lag_penalty = c(lag_penalty, lag_penalty)
   for (j in 1:nrow(a)){
-    aj = value(cvxr_norm(a[j,]))
+    aj = CVXR::value(cvxr_norm(a[j,]))
     w[j] = 1/(aj*(exp(-0.5*lag_penalty[j])))
   }
   return(w)
@@ -56,7 +55,6 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
   L = nrow(phi)
   D = ncol(X)
   N = nrow(X)
-  
   Y = matrix(rep(y,M),N,M)
   TAUS = matrix(rep(taus,N),N,M, byrow = TRUE)
   
