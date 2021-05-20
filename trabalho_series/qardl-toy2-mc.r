@@ -95,7 +95,7 @@ Q = function(tau, Y.current, Z.current) {
 }
 
 # Lags = 1:
-nrep = 3
+nrep = 200
 
 tau.grid = seq(from = .01, to = .99, by = .02)
 M = length(tau.grid)
@@ -161,11 +161,12 @@ for (i in 1:nrep) {
         
         for(i in 1:nrow(global_coefs)){
                 
-                betas_qr[[i]] = rbind(betas_qr[[i]], qrfit_coefs[i,])
-                betas_piqr[[i]] = rbind(betas_piqr[[i]], piqr_coefs[i,])
-                betas_global[[i]] = rbind(betas_global[[i]], global_coefs[i,])
+                betas_qr_1[[i]] = rbind(betas_qr_1[[i]], qrfit_coefs[i,])
+                betas_piqr_1[[i]] = rbind(betas_piqr_1[[i]], piqr_coefs[i,])
+                betas_global_1[[i]] = rbind(betas_global_1[[i]], global_coefs[i,])
         }
 }
+
 
 
 se_qr_1 = list()
@@ -173,9 +174,9 @@ se_piqr_1 = list()
 se_global_1 = list()
 
 for (i in 1:length(betas_qr_1)){
-        se_qr_1[[i]] = t(apply(betas_qr[[i]][-1,], 1, function(row) {(row - betas_qr[[i]][1,])^2}))
-        se_piqr_1[[i]] = t(apply(betas_piqr[[i]][-1,], 1, function(row) {(row - betas_piqr[[i]][1,])^2}))
-        se_global_1[[i]] = t(apply(betas_global[[i]][-1,], 1, function(row) {(row - betas_global[[i]][1,])^2}))
+        se_qr_1[[i]] = t(apply(betas_qr_1[[i]][-1,], 1, function(row) {(row - betas_qr_1[[i]][1,])^2}))
+        se_piqr_1[[i]] = t(apply(betas_piqr_1[[i]][-1,], 1, function(row) {(row - betas_piqr_1[[i]][1,])^2}))
+        se_global_1[[i]] = t(apply(betas_global_1[[i]][-1,], 1, function(row) {(row - betas_global_1[[i]][1,])^2}))
 }
 
 mse_1 = list()
@@ -217,7 +218,7 @@ ggplot(data = mse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method)) + x
 
 
 # Lags = 2:
-nrep = 100
+nrep = 200
 
 tau.grid = seq(from = .01, to = .99, by = .02)
 M = length(tau.grid)
@@ -228,6 +229,7 @@ betas_qr[[2]] = betas_piqr[[2]] = betas_global[[2]] = alpha1(tau.grid)
 betas_qr[[3]] = betas_piqr[[3]] = betas_global[[3]] = theta1(tau.grid)
 betas_qr[[4]] = betas_piqr[[4]] = betas_global[[4]] = betas_qr[[5]] = betas_piqr[[5]] = betas_global[[5]] = rep(0,M)
 
+set.seed(205652)
 for (i in 1:nrep) {
         # Arbitrary starting point (Y0,Z0)
         Y0 = runif(1)
@@ -289,6 +291,67 @@ for (i in 1:nrep) {
         }
 }
 
+# Comparing betas global with real coefs
+titles = c("Intercept", "Yt-1", "Xt-1", "Yt-2", "Xt-2")
+par(mfrow=c(2,2))
+for(var in 1:3){
+        plot(tau.grid, betas_global[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = titles[var])
+        for(i in 3:nrep){
+                lines(tau.grid, betas_global[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+        }
+        lines(tau.grid, betas_global[[var]][1,], lwd=2, col = rgb(1,0,0,.7))
+}
+par(mfrow=c(2,2))
+for(var in 4:5){
+        plot(tau.grid, betas_global[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = titles[var], ylim=c(-0.05,0.05))
+        for(i in 3:nrep){
+                lines(tau.grid, betas_global[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+        }
+        lines(tau.grid, betas_global[[var]][1,], lwd=2, col = rgb(1,0,0,.7))
+}
+
+# Comparing betas of all methods with real coefs
+titles = c("Intercept", "Yt-1", "Xt-1", "Yt-2", "Xt-2")
+par(mfrow=c(3,3))
+for(var in 1:3){
+        plot(tau.grid, betas_qr[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], " QR"))
+        for(i in 3:nrep){
+                lines(tau.grid, betas_qr[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+        }
+        lines(tau.grid, betas_qr[[var]][1,], lwd=2, col = rgb(1,0,0,.7))
+        
+        plot(tau.grid, betas_piqr[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], " PIQR"))
+        for(i in 3:nrep){
+                lines(tau.grid, betas_piqr[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+        }
+        lines(tau.grid, betas_piqr[[var]][1,], lwd=2, col = rgb(1,0,0,.7))
+        
+        plot(tau.grid, betas_global[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], " Global"))
+        for(i in 3:nrep){
+                lines(tau.grid, betas_global[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+        }
+        lines(tau.grid, betas_global[[var]][1,], lwd=2, col = rgb(1,0,0,.7))
+}
+par(mfrow=c(2,3))
+for(var in 4:5){
+        plot(tau.grid, betas_qr[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], " QR"), ylim=c(-0.05,0.05))
+        for(i in 3:nrep){
+                lines(tau.grid, betas_qr[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+        }
+        lines(tau.grid, betas_qr[[var]][1,], lwd=2, col = rgb(1,0,0,.7))
+        
+        plot(tau.grid, betas_piqr[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], " PIQR"), ylim=c(-0.05,0.05))
+        for(i in 3:nrep){
+                lines(tau.grid, betas_piqr[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+        }
+        lines(tau.grid, betas_piqr[[var]][1,], lwd=2, col = rgb(1,0,0,.7))
+        
+        plot(tau.grid, betas_global[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], " Global"), ylim=c(-0.05,0.05))
+        for(i in 3:nrep){
+                lines(tau.grid, betas_global[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+        }
+        lines(tau.grid, betas_global[[var]][1,], lwd=2, col = rgb(1,0,0,.7))
+}
 
 se_qr = list()
 se_piqr = list()
