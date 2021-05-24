@@ -66,7 +66,7 @@ Enfim, o modelo é flexível e parcimonioso, mas requer que certas restrições 
 
 --->
 
-Quantile regression, introduced in @Koenker1978, provides an estimation for the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering an approximation for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] In @Koenker2005, the Quantile Autoregressive (QAR) model is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models. @Galvao2013 generalize the QAR model to a framework that introduces exogenous stationary covariates, the Quantile Autoregressive Distributed Lag (QADL) model, demonstrating it can deliver good insights on asymmetric dynamics.
+Quantile regression, introduced in @Koenker1978, provides a model for the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering a description for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] In @Koenker2005, the Quantile Autoregressive (QAR) model is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all of the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models. @Galvao2013 generalize the QAR model to a framework that introduces exogenous stationary covariates, the Quantile Autoregressive Distributed Lag (QADL) model, demonstrating it can deliver good insights on asymmetric dynamics.
 
 In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or AdaLASSO, we might have different variables selected for each $\tau$. @Sottile2020 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. With this approach, it is possible to perform a global selection of variables for a grid of quantiles. @Sottile2020 studies global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
 
@@ -125,7 +125,7 @@ This representation, besides parsimonious, allows us to capture the nuances in t
 
 ## Global coefficient estimation and variable selection
 
-In a standard quantile regression (QR) method, we would estimate the $D$-dimensional vector $\beta$ for each $\tau$ one at a time minimizing the expected value of the check function $\rho_\tau$:
+In a standard quantile regression (QR) approach, we would estimate the $D$-dimensional vector $\beta(\tau)$ for each $\tau$ one at a time minimizing the sample average of the check function $\rho_\tau$:
 $$
 \hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^N{\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b)}
 $$
@@ -240,15 +240,15 @@ where $\beta_0(\tau) = v_{00}$,  $\beta_1(\tau) = v_{10}-v_{00}$ and $\beta_2(\t
 
 ### The generated QADL models
 
-To study the proposed estimator, we simulate the Y variable with the following model:
+To study the proposed estimator, we simulate the $Y$ variable with the following model:
 $$
-Q_{Y_t}(U_t|\Im_{t-1}) = c(U_t) + \alpha_1(U_t)Y_{t-1} + \theta_1(U_t)X_{t-1}
+Q_{Y_t}(U_t|\Im_{t-1}) = \alpha_0(U_t) + \alpha_1(U_t)Y_{t-1} + \theta_1(U_t)X_{t-1}
 $$
 and 
 $$
-Q_{X_t}(U_t|\Im_{t-1}) = c(U_t) + \alpha_1(U_t)X_{t-1} + \theta_1(U_t)Y_{t-1}
+Q_{X_t}(U_t|\Im_{t-1}) = \alpha_0(U_t) + \alpha_1(U_t)X_{t-1} + \theta_1(U_t)Y_{t-1}
 $$
-where $v_{00}(\tau) = QBeta(\tau,3,1)$, $v_{10}(\tau) = QBeta(\tau,1,3)$, $v_{01}(\tau) = QBeta(\tau,5,1)$, $c(U_t) = v_{00}(U_t)$, $\alpha_1(U_t) = v_{10}(U_t) - v_{00}(U_t)$ and $\theta_1(U_t) = v_{01}(U_t) - v_{00}(U_t)$.
+where $v_{00}(\tau) = QBeta(\tau,3,1)$, $v_{10}(\tau) = QBeta(\tau,1,3)$, $v_{01}(\tau) = QBeta(\tau,5,1)$, $\alpha_0(U_t) = v_{00}(U_t)$, $\alpha_1(U_t) = v_{10}(U_t) - v_{00}(U_t)$ and $\theta_1(U_t) = v_{01}(U_t) - v_{00}(U_t)$.
 
 ```{r, echo=FALSE, message=F, warning=F}
 set.seed(205650)
@@ -258,7 +258,7 @@ Y = qardl$Y
 Z = qardl$Z
 ```
 
-Figure \ref{fig:vd} illustrate how the chosen $v_d$ function behave on the grid of $\tau$'s. $v_{00}$, $v_{01}$ and $v_{10}$ are the quantile functions of the Beta distribution given the parameters described above. Then, $v_{11}$ is the resulting function of the operation $v_{10} +v_{01} - v_{00}$.
+Figure \ref{fig:vd} illustrates how the chosen $v_d$ function behave on the grid of $\tau$'s. $v_{00}$, $v_{01}$ and $v_{10}$ are the quantile functions of the Beta distribution given the parameters described above. Then, $v_{11}$ is the resulting function of the operation $v_{10} +v_{01} - v_{00}$.
 
 A simulation of a time series of 10000 observations using the method described above is illustrated in Figure \ref{fig:Y}.
 
@@ -308,7 +308,7 @@ A dataset only with the simulated $Y_{t-1}$ and $X_{t-1}$ as covariates;
 \item[2.]
 A dataset with the simulated $Y_{t-1}$ and $X_{t-1}$ with the addition of $Y_{t-2}$ and $X_{t-2}$;
 \item[3.]
-A dataset with 10 lags of each covariate Y and X;
+A dataset with 10 lags of each covariate $Y$ and $X$;
 \end{longlist}
 
 We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection. We compared the results with a regular quantile regression approach and the global estimation function _piqr_ without weights implemented in @Sottile2020.
@@ -321,6 +321,8 @@ The metrics used were SSR on two dimensions: by variable and quantile.
 ## Database with two lags
 
 ## Database with ten lags
+
+# Final discussions and future work \label{conclusion}
 
 ## Lists
 
