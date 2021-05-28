@@ -21,12 +21,8 @@ R = function(a, Y, X, TAUS, phi){
 ### Save ahat and bhat found
 
 penalty = function(a, lambda, lags){
-  w = weights(a, lags)
-  a_norm = numeric()
-  for (d in 1:nrow(a)){
-    a_norm[d] = CVXR::value(cvxr_norm(a[d,]))
-  }
-  pen = lambda*sum(w*a_norm)
+  #w = weights(a, lags)
+  pen = lambda*sum(abs(a))
   return(pen)
 }
 
@@ -42,7 +38,7 @@ weights = function(a, lags){
   }
   lag_penalty = c(lag_penalty, lag_penalty)
   for (j in 1:nrow(a)){
-    aj = CVXR::value(cvxr_norm(a[j,]))
+    aj = sum(CVXR::value(abs(a[j,])))
     w[j] = 1/(aj*(exp(-0.5*lag_penalty[j])))
   }
   return(w)
@@ -58,12 +54,21 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
   Y = matrix(rep(y,M),N,M)
   TAUS = matrix(rep(taus,N),N,M, byrow = TRUE)
   
+  tol = 1e-6
+  
   a = Variable(D,L)
   objective = R(a, Y, X, TAUS, phi) + penalty(a, lambda, lags)
   problem = Problem(Minimize(objective))
   result = solve(problem)
   ahat = result$getValue(a)
-  bhat = ahat%*%phi
+  ahat_tol = apply(ahat, 1, function(row) {
+    if (sum(abs(row))< tol){
+      print(sum(abs(row)))
+      return(rep(0, length(row)))
+    }
+    return(row)
+  })
+  bhat = t(ahat_tol)%*%phi
   
   return(list(
     "ahat" = ahat,
