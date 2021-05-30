@@ -17,35 +17,56 @@ R = function(a, Y, X, TAUS, phi){
 
 
 #### Simulation function #### 
-### Run one experiment estimating using the traditional qr estimator and the proposed one
 ### Save ahat and bhat found
 
-penalty = function(a, lambda, lags){
-  #w = weights(a, lags)
-  pen = lambda*sum(abs(a))
-  return(pen)
-}
-
-#TODO test the norm for aj here as well
-weights = function(a, lags){
-  w = numeric()
-  lag_penalty = numeric()
-  lag_penalty[1] = 1
-  if(lags > 1){
-    for(l in 2:lags){
-      lag_penalty[l] = lag_penalty[l-1] + 1
+penalty = function(a, f, w){
+  if(f == "piqr"){
+    penalty = w[1]*sum(abs(a[1,]))
+    for(d in 2:nrow(a)){
+      penalty = penalty + w[d]*sum(abs(a[d,]))
+    }
+  }else if (f=="gLasso"){
+    penalty = w[1]*cvxr_norm(a[1,])
+    for (d in 2:nrow(a)){
+      penalty  = penalty + w[d]*cvxr_norm(a[d,])
     }
   }
-  lag_penalty = c(lag_penalty, lag_penalty)
-  for (j in 1:nrow(a)){
-    aj = sum(CVXR::value(abs(a[j,])))
+  return(penalty)
+}
+
+# Function to calculate weights based on ahat with no penalty
+weights = function(a, lags, Y, X, TAUS, phi){
+  w = numeric()
+  if (lags != 0){
+    lag_penalty = numeric()
+    lag_penalty[1] = 1
+    if(lags > 1){
+      for(l in 2:lags){
+        lag_penalty[l] = lag_penalty[l-1] + 1
+      }
+    }
+    lag_penalty = c(1, lag_penalty, lag_penalty)
+  }
+  else {
+    lag_penalty = rep(1,nrow(a))
+  }
+  
+  objective = R(a, Y, X, TAUS, phi)
+  problem = Problem(Minimize(objective))
+  result = solve(problem)
+  if(result$status == 'solver_error'){
+    return("error")   
+  }
+  ahat = result$getValue(a)
+  
+  for (j in 1:nrow(ahat)){
+    aj = sum(abs(ahat[j,]))
     w[j] = 1/(aj*(exp(-0.5*lag_penalty[j])))
   }
   return(w)
 }
 
-#todo - optimize via optim
-global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambda = 0, lags=1){
+global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambda = 0, lags=0, f = "piqr", w = F){
   # Get parameters
   M = length(taus)
   L = nrow(phi)
@@ -57,9 +78,19 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
   tol = 1e-6
   
   a = Variable(D,L)
-  objective = R(a, Y, X, TAUS, phi) + penalty(a, lambda, lags)
+  
+  if(w){
+    we = weights(a, lags, Y, X, TAUS, phi)
+  } else {
+    we = rep(1, nrow(a))
+  }
+  
+  if(we == "error") return (list("bhat" = "error"))
+  
+  objective = R(a, Y, X, TAUS, phi) + lambda*penalty(a, f, we)
   problem = Problem(Minimize(objective))
   result = solve(problem)
+  if(result$status == 'solver_error') return (list("bhat" = "error"))
   ahat = result$getValue(a)
   ahat_tol = apply(ahat, 1, function(row) {
     if (sum(abs(row))< tol){
@@ -73,107 +104,6 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
   return(list(
     "ahat" = ahat,
     "bhat" = bhat
-  ))
-}
-
-bhatQR = function(taus = c(0.5), X = matrix(), y = c()){
-  bhat = rq(y~X[,-1],taus)$coef
-  return(list("bhat" = bhat))
-} 
-
-R_univ = function(a = a, taus = taus, y = y){ # objective function
-  N = length(y)
-  M = length(taus)
-  
-  b = phi%*%a # candidate optimizer
-  foo = sapply(1:M, function(m){
-    argeval = y-b[m]
-    # objective function corresponding to quantile level = taus[m]:
-    sum((2*taus[m]-1)*(argeval) + abs(argeval))/N
-    # sum((taus[m]-1)*(argeval) + argeval*pnorm(argeval,sd=h) + h^2*dnorm(argeval,sd=h))/N
-  }
-  )
-  return(sum(foo)/M) # mean of the preceding objective functions
-}
-
-global_qr_uni = function(phi = phi){
-  L = nrow(phi)
-  ahat = optim(rep(1,L),R)$par
-  bhat = phi%*%ahat
-  return (list(
-    "ahat" = ahat,
-    "bhat" = bhat
-  ))
-}
-
-
-
-#### MC function ####
-### Run a MC experiment estimating using the traditional qr estimator and the proposed one
-### Save MSE for each iteration and evaluate results
-### Save Bhat found for each
-
-# nrepl: number of monte carlo replications
-# N: sample size
-# D: covariables 
-# M: tau grid size
-
-run_mc = function(nrepl = 200, N = 100, taus = c(0.5), phi = matrix(), beta = c(1), lambda = 0, sd_error = 0.1){
-  
-  # Get parameters
-  M = length(taus)
-  D = length(beta)
-  L = nrow(phi)
-  
-  # Initialize response variables
-  Bhat_list = list()
-  BhatQR_list = list()
-  mse_Bhat_list = list()
-  mse_BhatQR_list = list()
-  
-  for (i in 1:D){
-    Bhat_list[[i]] = matrix(0,nrepl,M)
-    BhatQR_list[[i]] = matrix(0,nrepl,M)
-    mse_Bhat_list[[i]] = matrix(0,nrepl,M)
-    mse_BhatQR_list[[i]] = matrix(0,nrepl,M)
-  }
-  
-  # Run simulation 
-  for (i in 1:nrepl){
-    
-    X = matrix(runif(N*D),N,D)
-    X[,1] = 1
-    Xbar = colMeans(X)
-    
-    y = X%*%beta + rnorm(N,sd=sd_error)
-    
-    Y = matrix(rep(y,M),N,M)
-    TAUS = matrix(rep(taus,N),N,M, byrow = TRUE)
-    
-    bhatQR = rq(y~X[,-1],taus)$coef
-    
-    a = Variable(D,L)
-    penalty = function(a) sum(abs(a))
-    objective = R(a, Y, X, TAUS) + lambda*penalty(a)
-    problem = Problem(Minimize(objective))
-    result = solve(problem)
-    if(result$status == 'solver_error') next
-    ahat = result$getValue(a)
-    bhat = ahat%*%phi
-    
-    for(k in 1:D){
-      Bhat_list[[k]][i,] = bhat[k,]
-      BhatQR_list[[k]][i,] = bhatQR[k,]
-      mse_Bhat_list[[k]][i,] = (beta[k] - bhat[k,])^2
-      mse_BhatQR_list[[k]][i,] = (beta[k] - bhatQR[k,])^2
-    }
-  }
-  
-  return(list(
-    "bhat" = Bhat_list,
-    "bhatQR" = BhatQR_list,
-    "mse_bhat" = mse_Bhat_list,
-    "mse_bhatQR" = mse_BhatQR_list
   ))
 }
 
