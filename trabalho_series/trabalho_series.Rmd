@@ -209,13 +209,18 @@ where
 $$
 \Vert\delta_{j}\Vert = \sqrt{\sum_{h=1}^L\delta_{j,h}^2}
 $$
+and 
+$$
+\omega_j = \left(|\hat{\delta}_{j}| e^{-\alpha}\right)^{-p}
+$$
+being $hat{\delta}$ the $\delta$ matrix estimated as described in \ref{eq:betafunc2}.
 
 In a time series context, we are estimating the coefficients for each lagged variable, thus, @Park2013 consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGroup}, we will have that $\omega_j = \left(\Vert\hat{\delta}_{j}\Vert e^{-\alpha t}\right)^{-p}$.
 
 
 # Methodology \label{methodology}
 
-## Simulation
+## Simulation \label{simulation}
 
 As stated in Section 2, when studying quantile regression, we need to assume certain restrictions to avoid situations like quantile crossing. To allow  more flexibility on the $\beta(U_t)$ parameters, we usually restrict the support of the covariates to be bounded in $[0, +\infty]$. In a time series context, where we are modeling a process like \ref{eq:adltau}, we need to impose these restriction not only to the right side of the equation, as usually enough in linear quantile regression, but also in the response variable, as $Y_t$ and $Y_{t-1}$ are equal in distribution. To simulate \ref{eq:adltau} ensuring that the right-hand side of the equation is monotone and increasing in $U_t$, we will use a family of hyperplanes, as discussed in @Horta2021. 
 
@@ -298,9 +303,11 @@ plot(Y[2:T]~Z[1:(T-1)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Xt-1")
 
 ## Estimation and evaluation
 
-To globally estimate the functions $c(\tau)$, $\alpha_1(\tau)$ and $\theta_1(\tau)$ for a given grid of $\tau$s, the CVXR R-package (@cvxr2020) for convex optimization was used to minimize the objective function described in \ref{eq:betafuncpenAda}. 
+To guarantee a fair comparison between the method proposed by @Sottile2020 and the innovations included in the present work, we implemented the _global-qr_ function, a re-implementation of the _piqr_ function from @Sottile2020 using the CVXR R-package (@cvxr2020) for convex optimization, minimizing the objective function described in \ref{eq:betafuncpen}. The difference is that, instead of the integral of the $\tau$ grid, we used the sum of the $M$ $\tau$'s of the grid. The results of the _global-qr_ function are asymptotically equivalent to the estimated coefficients of the _piqr_ function. Figures \ref{piqrcomp_alpha0}, \ref{piqrcomp_alpha1} and \ref{piqrcomp_alpha1} illustrate the estimated $\alpha_0$, $alpha_1$ and $theta_1$, respectively, using the _piqr_ function and the equivalent _global-qr_ implementation with a $tau$ grid of size 50. Furthemore, we added parametrization to allow performing adaptive Lasso penalization, described in \ref{eq:betafuncpenAda}, as well as the WLadaLasso penalization from @Konzen2016. Also, there is parametrization to replace the traditional lasso penalization from \ref{eq:betafuncpen} by the group Lasso penalization, described by \ref{eq:betafuncpenAdaGroup}. The code for _global-qr_ can be found in @Bellini2021.
 
-To test the proposed approach, we used Monte Carlo simulations with 200 replications using the simulation method described above. The global estimation function was evaluated with 3 different datasets:
+![Alpha0 estimation \label{piqrcomp_alpha0}](comp_piqr_a0_noreal.png) ![Alpha 1 estimation \label{piqrcomp_alpha1}](comp_piqr_a1_noreal.png) ![Theta 1 estimation \label{piqrcomp_theta1}](comp_piqr_t1_noreal.png)
+
+To test the proposed approach, we used Monte Carlo simulations with 200 replications using the method described in section \ref{simulation} to generate QADL processes of 500 observations. For each iteration, we globally estimated the coefficients using _global-qr_ function with the possible permutations: $l_1$ penalization ( _piqr_ equivalent) and $l_2$ penalization (group Lasso), with and without weights (adaptive Lasso), considering or not the lags to compute the weight (WLadaLasso). This results in 6 different estimation. In addition, they were compared to the regular quantile regression function from the _quantreg_ R package. Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed with 3 different datasets:
 
 \begin{longlist}
 \item[11]
@@ -311,8 +318,7 @@ A dataset with the simulated $Y_{t-1}$ and $X_{t-1}$ with the addition of $Y_{t-
 A dataset with 10 lags of each covariate $Y$ and $X$;
 \end{longlist}
 
-We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection. We compared the results with a regular quantile regression approach and the global estimation function _piqr_ without weights implemented in @Sottile2020.
-The metrics used were SSR on two dimensions: by variable and quantile.
+We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection.The metrics used were SSR on two dimensions: by variable and quantile.
 
 # Results \label{results}
 
