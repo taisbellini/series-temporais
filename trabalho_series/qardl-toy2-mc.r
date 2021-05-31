@@ -219,6 +219,7 @@ legend(x = "topright",
 
 
 ### Plots without real ###
+par(mfrow=c(1,3))
 plot(tau.grid, piqr_coefs[1,], type = 'l', col='black', lwd=2, lty='dotted', ylab = "Estimated alpha1")
 lines(tau.grid, global_coefs[1,], lwd=2, col = rgb(1,0,0,.7))
 legend(x = "bottomright",
@@ -386,7 +387,7 @@ levels(mse_df_1$var) = c("c", "Yt-1", "Xt-1")
 
 library(reshape2)
 mse.m_1 <- melt(mse_df_1, id.vars  = c("method", "var"))
-ggplot(data = mse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method)) + xlab("Variable") + ylab("MSE")
+ggplot(data = mse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("MSE")
 
 
 #### Lags = 2 ####
@@ -651,7 +652,6 @@ for(var in 4:5){
 }
 
 # Comparing gLASSO with different weight approaches
-# need to finish
 
 titles = c("Intercept", "Yt-1", "Xt-1", "Yt-2", "Xt-2")
 
@@ -663,85 +663,80 @@ for(i in 3:nrep){
 }
 lines(tau.grid, betas_gLasso[[1]][1,], lwd=2, col = rgb(1,0,0,.7))
 
-plot(tau.grid, betas_piqrW[[1]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[1], "PIQR Weighted"), ylim = c(0.2,1.2))
+plot(tau.grid, betas_gLassoW[[1]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[1], " gLASSO Weighted"), ylim = c(0.2,1.2))
 for(i in 3:nrep){
-        lines(tau.grid, betas_piqrW[[1]][i,], lwd=2, col = rgb(0,0,0,.1))
+        lines(tau.grid, betas_gLassoW[[1]][i,], lwd=2, col = rgb(0,0,0,.1))
 }
-lines(tau.grid, betas_piqrW[[1]][1,], lwd=2, col = rgb(1,0,0,.7))
+lines(tau.grid, betas_gLassoW[[1]][1,], lwd=2, col = rgb(1,0,0,.7))
 
-plot(tau.grid, betas_piqrWL[[1]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[1], "PIQR Weighted Lags"), ylim = c(0.2,1.2))
+plot(tau.grid, betas_gLassoWL[[1]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[1], " gLASSO Weighted Lags"), ylim = c(0.2,1.2))
 for(i in 3:nrep){
-        lines(tau.grid, betas_piqrWL[[1]][i,], lwd=2, col = rgb(0,0,0,.1))
+        lines(tau.grid, betas_gLassoWL[[1]][i,], lwd=2, col = rgb(0,0,0,.1))
 }
-lines(tau.grid, betas_piqrWL[[1]][1,], lwd=2, col = rgb(1,0,0,.7))
+lines(tau.grid, betas_gLassoWL[[1]][1,], lwd=2, col = rgb(1,0,0,.7))
 
 
 # Var 2
-plot(tau.grid, betas_piqr[[2]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[2], " PIQR"), ylim = c(-0.7, -0.2))
+plot(tau.grid, betas_gLasso[[2]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[2], " gLASSO"), ylim = c(-0.7, -0.2))
 for(i in 3:nrep){
-        lines(tau.grid, betas_piqr[[2]][i,], lwd=2, col = rgb(0,0,0,.1))
+        lines(tau.grid, betas_gLasso[[2]][i,], lwd=2, col = rgb(0,0,0,.1))
 }
-lines(tau.grid, betas_piqr[[2]][1,], lwd=2, col = rgb(1,0,0,.7))
+lines(tau.grid, betas_gLasso[[2]][1,], lwd=2, col = rgb(1,0,0,.7))
 
-plot(tau.grid, betas_piqrW[[2]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[2], " PIQR Weighted"), ylim = c(-0.7,0.2))
+plot(tau.grid, betas_gLassoW[[2]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[2], " gLASSO Weighted"), ylim = c(-0.7,0.2))
 for(i in 3:nrep){
-        lines(tau.grid, betas_piqrW[[2]][i,], lwd=2, col = rgb(0,0,0,.1))
+        lines(tau.grid, betas_gLassoW[[2]][i,], lwd=2, col = rgb(0,0,0,.1))
 }
-lines(tau.grid, betas_piqrW[[2]][1,], lwd=2, col = rgb(1,0,0,.7))
+lines(tau.grid, betas_gLassoW[[2]][1,], lwd=2, col = rgb(1,0,0,.7))
 
-plot(tau.grid, betas_piqrWL[[2]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[2], "PIQR Weighted Lags"), ylim = c(-0.7,0.2))
+plot(tau.grid, betas_gLassoWL[[2]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[2], "gLASSO Weighted Lags"), ylim = c(-0.7,0.2))
 for(i in 3:nrep){
-        lines(tau.grid, betas_piqrWL[[2]][i,], lwd=2, col = rgb(0,0,0,.1))
+        lines(tau.grid, betas_gLassoWL[[2]][i,], lwd=2, col = rgb(0,0,0,.1))
 }
-lines(tau.grid, betas_piqrWL[[2]][1,], lwd=2, col = rgb(1,0,0,.7))
+lines(tau.grid, betas_gLassoWL[[2]][1,], lwd=2, col = rgb(1,0,0,.7))
 
 
 # Var 3
-plot(tau.grid, betas_piqr[[3]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[3], " PIQR"), ylim = c(-0.5, 0.5))
+plot(tau.grid, betas_gLasso[[3]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[3], " gLASSO"), ylim = c(-0.5, 0.5))
 for(i in 3:nrep){
-        lines(tau.grid, betas_piqr[[3]][i,], lwd=2, col = rgb(0,0,0,.1))
+        lines(tau.grid, betas_gLasso[[3]][i,], lwd=2, col = rgb(0,0,0,.1))
 }
-lines(tau.grid, betas_piqr[[3]][1,], lwd=2, col = rgb(1,0,0,.7))
+lines(tau.grid, betas_gLasso[[3]][1,], lwd=2, col = rgb(1,0,0,.7))
 
-plot(tau.grid, betas_piqrW[[3]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[3], "PIQR Weighted"), ylim = c(-0.5,0.5))
+plot(tau.grid, betas_gLassoW[[3]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[3], "gLASSO Weighted"), ylim = c(-0.5,0.5))
 for(i in 3:nrep){
-        lines(tau.grid, betas_piqrW[[3]][i,], lwd=2, col = rgb(0,0,0,.1))
+        lines(tau.grid, betas_gLassoW[[3]][i,], lwd=2, col = rgb(0,0,0,.1))
 }
-lines(tau.grid, betas_piqrW[[3]][1,], lwd=2, col = rgb(1,0,0,.7))
+lines(tau.grid, betas_gLassoW[[3]][1,], lwd=2, col = rgb(1,0,0,.7))
 
-plot(tau.grid, betas_piqrWL[[3]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[3], "PIQR Weighted Lags"), ylim = c(-0.5,0.5))
+plot(tau.grid, betas_gLassoWL[[3]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[3], "gLASSO Weighted Lags"), ylim = c(-0.5,0.5))
 for(i in 3:nrep){
-        lines(tau.grid, betas_piqrWL[[3]][i,], lwd=2, col = rgb(0,0,0,.1))
+        lines(tau.grid, betas_gLassoWL[[3]][i,], lwd=2, col = rgb(0,0,0,.1))
 }
-lines(tau.grid, betas_piqrWL[[3]][1,], lwd=2, col = rgb(1,0,0,.7))
+lines(tau.grid, betas_gLassoWL[[3]][1,], lwd=2, col = rgb(1,0,0,.7))
 
 
 #Vars 4 e 5
 par(mfrow=c(2,3))
 for(var in 4:5){
-        plot(tau.grid, betas_piqr[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], " PIQR"), ylim=c(-0.5,0.5))
+        plot(tau.grid, betas_gLasso[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], "gLASSO"), ylim=c(-0.5,0.5))
         for(i in 3:nrep){
-                lines(tau.grid, betas_piqr[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+                lines(tau.grid, betas_gLasso[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
         }
-        lines(tau.grid, betas_piqr[[var]][1,], lwd=2, col = rgb(1,0,0,.2))
+        lines(tau.grid, betas_gLasso[[var]][1,], lwd=2, col = rgb(1,0,0,.2))
         
-        plot(tau.grid, betas_piqrW[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], "PIQR Weighted"), ylim=c(-0.5,0.5))
+        plot(tau.grid, betas_gLassoW[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], "gLASSO Weighted"), ylim=c(-0.5,0.5))
         for(i in 3:nrep){
-                lines(tau.grid, betas_piqrW[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+                lines(tau.grid, betas_gLassoW[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
         }
-        lines(tau.grid, betas_piqrW[[var]][1,], lwd=2, col = rgb(1,0,0,.2))
+        lines(tau.grid, betas_gLassoW[[var]][1,], lwd=2, col = rgb(1,0,0,.2))
         
-        plot(tau.grid, betas_piqrWL[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], "PIQR Weighted Lags"), ylim=c(-0.5,0.5))
+        plot(tau.grid, betas_gLassoWL[[var]][2,], type = 'l', col=rgb(0,0,0,.1), lwd=2, ylab = "Coef", main = paste(titles[var], "gLASSO Weighted Lags"), ylim=c(-0.5,0.5))
         for(i in 3:nrep){
-                lines(tau.grid, betas_piqrWL[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
+                lines(tau.grid, betas_gLassoWL[[var]][i,], lwd=2, col = rgb(0,0,0,.1))
         }
-        lines(tau.grid, betas_piqrWL[[var]][1,], lwd=2, col = rgb(1,0,0,.2))
+        lines(tau.grid, betas_gLassoWL[[var]][1,], lwd=2, col = rgb(1,0,0,.2))
 }
-
-
-
-
-
 
 # Comparing betas of all methods with real coefs
 titles = c("Intercept", "Yt-1", "Xt-1", "Yt-2", "Xt-2")
@@ -833,14 +828,14 @@ levels(mse_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2")
 
 library(reshape2)
 mse.m <- melt(mse_df, id.vars  = c("method", "var"))
-ggplot(data = mse.m, aes(x=var, y=value)) + geom_point(aes(colour=method)) + xlab("Variable") + ylab("MSE")
+ggplot(data = mse.m, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("MSE")
 
 
 # Lags = 10
 
-nrep = 1
+nrep = 200
 
-tau.grid = seq(from = .01, to = .99, by = .02)
+tau.grid = seq(from = .1, to = .9, by = .1)
 M = length(tau.grid)
 
 betas_qr_10 = betas_piqr_10 = betas_global_10 = list()
