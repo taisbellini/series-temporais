@@ -1,5 +1,5 @@
 ---
-title: Quantile Autoregressive Distributed Lag model Global selection
+title: Quantile Autoregressive Distributed Lag model global variable selection
 author:
   - name: Taís 
     surname: Bellini
@@ -11,8 +11,8 @@ affiliation:
     name: Instituto de Matemática e Estatística, Universidade Federal do Rio Grande do Sul
     authorsLabels: e1
 abstract: |
-  Quantile regression models the conditional distribution of a response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels offering a description for the whole conditional distribution (@Koenker2006). Using quantile regression, as opposed to traditional linear regression, provides several advantages, but can add complexity to certain operations. For example, when performing variable selection, there might be a different set of variables selected for each quantile. @Frumento2016 proposes a parametric modeling of quantile regression coefficient functions that allows us to estimate in one single minimization problem the coefficients for all quantiles in a grid. @Sotille2020 use this approach to perform LASSO variable selection using information on all quantiles simultaneously.
-  In this work, we propose a global coefficient estimation and variable selection method based on the estimator presented in @Sottile2020, introducing the group lasso penalty, suggested in @Yuan2006, and applied in a Quantile Autoregressive Distributed Lag (QADL) model. Furthermore, since we are in a time series context, we also evaluate the variable selection penalization applying higher penalties to higher lags, as proposed in @Konzen2016. We see that ... has a lower Mean Squared Error when selecting the variables, but the estimation of the real coefficients is better in ... 
+  Quantile regression models the conditional distribution of a response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels offering a description for the whole conditional distribution (@Koenker2006). Using quantile regression, as opposed to traditional linear regression, provides several advantages, but can add complexity to certain operations. For example, when performing variable selection, there might be a different set of variables selected for each quantile. @Frumento2016 propose a parametric modeling of quantile regression coefficient functions that allows us to estimate in one single minimization problem the coefficients for all quantiles in a grid. @Sottile2020 use this approach to perform LASSO variable selection using information on all quantiles simultaneously.
+  In this work, we propose a global coefficient estimation and variable selection method based on the estimator presented in @Sottile2020, introducing the group LASSO penalty, suggested in @Yuan2006, and applied in a Quantile Autoregressive Distributed Lag (QADL) model. Furthermore, since we are in a time series context, we also evaluate the variable selection penalization applying higher penalties to higher lags, as proposed in @Konzen2016. The results suggest that a weighted penalized approach can provide better results in selecting the variables as well as in estimating the coefficients. In particular, both LASSO and group LASSO penalization with higher weights for higher lags were the ones that had lower mean squared error to estimate most of the tested scenarios and set the zero coefficients correctly more often. 
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -40,13 +40,14 @@ header-includes:
   - \DeclareMathOperator{\Z}{\mathbb{Z}}
   - \DeclareMathOperator{\R}{\mathbb{R}}
   - \DeclareMathOperator*{\argmax}{arg\,max}
+  - \usepackage{float}
 ---
 
 # Introduction
 
 Quantile regression, introduced in @Koenker1978, provides a model for the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering a description for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] In @Koenker2005, the Quantile Autoregressive (QAR) model is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models. @Galvao2013 generalize the QAR model to a framework that introduces exogenous stationary covariates, the Quantile Autoregressive Distributed Lag (QADL) model, demonstrating it can deliver good insights on asymmetric dynamics.
 
-In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or AdaLASSO, we might have different variables selected for each $\tau$. @Frumento2016 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. Adding to this approach, it is possible to perform a global selection of variables for a grid of quantiles. @Sottile2020 studies global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
+In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or adaptive LASSO, we might have different variables selected for each $\tau$. @Frumento2016 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. Adding to this approach, it is possible to perform a global selection of variables for a grid of quantiles. @Sottile2020 study global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
 
 In this work, we propose a global coefficient estimation and variable selection method based on the estimator presented in @Sottile2020. The proposal introduces the group LASSO penalty, suggested in @Yuan2006, and is applied in a Quantile Autoregressive Distributed Lag (QADL) model. Furthermore, since we are in a time series context, the variable selection penalization applies higher penalties to higher lags, as proposed in @Konzen2016. The paper is organized as follows: Chapter \ref{fundamentals} describes the main concepts used in this work and the proposed estimator, Chapter \ref{methodology} explains how the QADL process was generated and how the simulation process was setup, Chapter \ref{results} analyses the results of the simulation and comparison with other methods, and Chapter \ref{conclusion} provides a final discussion enlightening future work.
 
@@ -58,14 +59,14 @@ In this section, the fundamental concepts used in this work are presented. We st
 
 Consider an Autoregressive Distributed Lag model described by the equation:
 \begin{equation}
-Y_t = c + \alpha_1Y_{t-1} +  \cdots + \alpha_pY_{t-p} + \theta_1\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q\mathbf{X}_{t-q}^\intercal + \varepsilon_t 
+Y_t = \alpha_0 + \alpha_1Y_{t-1} +  \cdots + \alpha_pY_{t-p} + \theta_1\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q\mathbf{X}_{t-q}^\intercal + \varepsilon_t 
 \label{eq:adl}
 \end{equation}
 where $t = 1, ..., T$, $Y_t$ is the response variable, $Y_{t-j}$ the lag of the response variable and $\mathbf{X}_{t-q}$ is the lagged covariates vector with dimension $D$. $\varepsilon_t$ is a white noise.
 
-As in @Koenker2006, we are interested in studying a class of quantile autoregressive models which coefficients can be dependent of $\tau$. Therefore, lets consider the following process, with ${U_t}$ as a sequence of i.i.d standard uniform random variables, $c$, $\alpha$ and $\theta$ as unknown functions $[0,1] \rightarrow \mathbb{R}$ to be estimated:
+As in @Koenker2006, we are interested in studying a class of quantile autoregressive models which coefficients can be dependent of $\tau$. Therefore, lets consider the following process, with ${U_t}$ as a sequence of i.i.d standard uniform random variables, $\alpha$ and $\theta$ as unknown functions $[0,1] \rightarrow \mathbb{R}$ to be estimated:
 \begin{equation}
-Y_t = c(U_t) + \alpha_1(U_t)Y_{t-1} +  \cdots + \alpha_p(U_t)Y_{t-p} + \theta_1(U_t)\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q(U_t)\mathbf{X}_{t-q}^\intercal
+Y_t = \alpha_0(U_t) + \alpha_1(U_t)Y_{t-1} +  \cdots + \alpha_p(U_t)Y_{t-p} + \theta_1(U_t)\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q(U_t)\mathbf{X}_{t-q}^\intercal
 \label{eq:adltau}
 \end{equation}
 
@@ -78,7 +79,7 @@ $$
 Assuming the right side of the equation \ref{eq:adltau} is monotone and increasing on $U_t$, we can say that the $\tau_{th}$ conditional quantile function of $Y_t$ is:
 
 \begin{equation}
-Q_{Y_t}(\tau|\Im_t) =  c(\tau) + \alpha_1(\tau)Y_{t-1} + \cdots + \alpha_p(\tau)Y_{t-p} + \theta_1(\tau)\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q(\tau)\mathbf{X}_{t-q}^\intercal
+Q_{Y_t}(\tau|\Im_t) =  \alpha_0(\tau) + \alpha_1(\tau)Y_{t-1} + \cdots + \alpha_p(\tau)Y_{t-p} + \theta_1(\tau)\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q(\tau)\mathbf{X}_{t-q}^\intercal
 \label{eq:qadl}
 \end{equation}
 where $\Im_t$ is the $\sigma$-field generated by ${Y_s, s\leq t}$. 
@@ -91,15 +92,15 @@ Q_{Y_t}(\tau|\Im_t) = \mathbf{Z_t}^\intercal\beta(\tau)
 \label{eq:qadlred}
 \end{equation}
 
-Given the QADL model described above, $\mathbf{Z_t}^\intercal$ and $\beta(\tau)$ are, respectively, 
+Given the QADL model described in \ref{eq:adl}, $\mathbf{Z_t}^\intercal$ and $\beta(\tau)$ are, respectively, 
 $$
 \mathbf{Z_t}^\intercal = (1, Y_{t-1}, \dots, Y_{t-p}, \mathbf{X}_{t-1}, \dots, \mathbf{X}_{t-p})
 $$ 
 and
 $$
-\beta(\tau)^\intercal = (c(\tau), \alpha_1(\tau), \dots, \alpha_p(\tau), \theta_1(\tau), \cdots , \theta_q(\tau))
+\beta(\tau)^\intercal = (\alpha_0(\tau), \alpha_1(\tau), \dots, \alpha_p(\tau), \theta_1(\tau), \cdots , \theta_q(\tau))
 $$
-This representation, besides parsimonious, allows us to capture the nuances in the dependency structure of $\mathbf{Z}$ and $Y$. It is important to highlight that, as in the QAR model and other linear quantile regression applications, the QADL process is subject to quantile crossing (@Koenker2005), which is when the estimated quantile functions cross, which violate the principle that distribution functions and their associated inverse functions are monotone increasing. However, it is a valid local approximation over a region of interest.
+This representation, besides parsimonious, allows us to capture the nuances in the dependency structure of $\mathbf{Z}$ and $Y$. It is important to highlight that, as in the QAR model and other linear quantile regression applications, the QADL process is subject to quantile crossing (@Koenker2005), which is when the estimated quantile functions cross. This violates the principle that distribution functions and their associated inverse functions are monotone increasing. However, it is a valid local approximation over a region of interest.
 
 ## Global coefficient estimation and variable selection
 
@@ -138,10 +139,10 @@ Define $\varphi(\tau)$ a set of $L$ known functions of $\tau$, with $L = 1,2,\do
 \beta(\tau|\varphi) = \delta\varphi(\tau)
 \label{eq:betac}
 \end{equation}
-where $\varphi(\tau)$ is a $L \times M$ matrix, the resulting dimensions of $\beta(\tau|\varphi)$ is $D \times M$, being $M$ the size of the quantile grid we are estimating. Thus, we have that:
+where $\varphi(\tau)$ is an $L \times M$ matrix. The resulting dimensions of $\beta(\tau|\varphi)$ is $D \times M$, being $M$ the size of the grid of quantiles we are estimating. Thus, we have that:
 
 \begin{equation}
-\beta_j(\tau|\varphi) = \delta_{1j}\phi_1(\tau) + \dots + \delta_{Mj}\phi_M(\tau)
+\beta_j(\tau|\varphi) = \delta_{1j}\varphi_1(\tau) + \dots + \delta_{Mj}\varphi_M(\tau)
 \label{eq:betaj}
 \end{equation}
 
@@ -155,14 +156,14 @@ Q(\tau|\mathbf{Z},\varphi) = \mathbf{Z}^\intercal\delta\varphi(\tau)
 Since $\varphi(\tau)$ is known, our goal is to find $\delta$ that minimizes the loss function of the standard QR, so \ref{eq:betafunc} can be rewritten as:
 
 \begin{equation}
-\hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau}
+\hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^N{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau}
 \label{eq:betafunc2}
 \end{equation}
 
 
 ### Variable selection
 
-To perform a LASSO variable selection, equation \ref{eq:betafunc2} is modified to introduce a $l^1$-norm penalizing factor (@Sottile2020):
+To perform a LASSO variable selection, equation \ref{eq:betafunc2} is modified to introduce an $l^1$-norm penalizing factor (@Sottile2020):
 
 \begin{equation}
 \hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\sum_{h=1}^{L}|\delta_{jh}|
@@ -170,7 +171,7 @@ To perform a LASSO variable selection, equation \ref{eq:betafunc2} is modified t
 \end{equation}
 with $\lambda > 0$ as a tuning parameter. Thus, minimization is done subject to $\sum_{j=1}^{D}\sum_{h=1}^{L}|\delta_{jh}| \leq s$, where $s$ is a defined bound to the model parameters. 
 
-An alternative to overcome the inconsistencies that LASSO selection can present is the adaptive LASSO, often denoted as AdaLASSO, method proposed by @Zou2006, where different weights $\omega_j$ are applied to different coefficients. In this approach, variables with lower estimated coefficient, which indicate they are less relevant, will have a great weight $\omega_j$ resulting in a higher penalty. In this scenario, \ref{eq:betafuncpen} would have an extra parameter to represent the weight $\omega_j$:
+An alternative to overcome the inconsistencies that LASSO selection can face is the adaptive LASSO, often denoted as AdaLASSO, method proposed by @Zou2006, where different weights $\omega_j$ are applied to different coefficients. In this approach, variables with lower estimated coefficient, which indicate they are less relevant, will have a great weight $\omega_j$ resulting in a higher penalty. In this scenario, \ref{eq:betafuncpen} would have an extra parameter to represent the weight $\omega_j$:
 
 \begin{equation}
 \hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\sum_{h=1}^{L}\omega_j|\delta_{jh}|
@@ -191,14 +192,14 @@ and
 $$
 \omega_j = \left(|\hat{\delta}_{j}| e^{-\alpha}\right)^{-p}
 $$
-being $hat{\delta}$ the $\delta$ matrix estimated as described in \ref{eq:betafunc2}.
+being $\hat{\delta}$ the $\delta$ matrix estimated as described in \ref{eq:betafunc2}.
 
-In a time series context, we are estimating the coefficients for each lagged variable, thus, @Park2013 consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGroup}, we will have that $\omega_j = \left(\Vert\hat{\delta}_{j}\Vert e^{-\alpha t}\right)^{-p}$.
+In a time series context, we are estimating the coefficients for each lagged variable, thus, @Park2013 consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGroup}, we will have that $\omega_j = \left(|\hat{\delta}_{j}| e^{-\alpha t}\right)^{-p}$.
 
 
 # Methodology \label{methodology}
 
-In this chapter, the process used to simulate the QADL model is presented, as well as the parameters used for the implementation of the proposed estimators and the metrics used to evaluate the results.
+In this chapter, the process used to simulate the QADL model is presented, as well as the parameters used in the implementation of the proposed estimators and the metrics considered to evaluate the results.
 
 ## Simulation \label{simulation}
 
@@ -225,7 +226,7 @@ where $\beta_0(\tau) = v_{00}$,  $\beta_1(\tau) = v_{10}-v_{00}$ and $\beta_2(\t
 
 ### The generated QADL models
 
-To study the proposed estimator, we simulate the $Y$ variable with the following model:
+To study the proposed estimator, we simulate the $Y$ and $X$ variables with the following model:
 $$
 Q_{Y_t}(U_t|\Im_{t-1}) = \alpha_0(U_t) + \alpha_1(U_t)Y_{t-1} + \theta_1(U_t)X_{t-1}
 $$
@@ -247,7 +248,7 @@ Figure \ref{fig:vd} illustrates how the chosen $v_d$ function behave on the grid
 
 A simulation of a time series of 10000 observations using the method described above is illustrated in Figure \ref{fig:Y}.
 
-Figure \ref{fig:Ycorr} present the autocorrelation function and the partial autocorrelation function of the process generated by the method described, the correlation between $Yt$ and $Y_{t-1}$ as well as the correlation between $Yt$ and $X_{t-1}$. 
+Figure \ref{fig:Ycorr} presents the autocorrelation function and the partial autocorrelation function of the process generated by the method described, the correlation between $Y_t$ and $Y_{t-1}$ as well as the correlation between $Y_t$ and $X_{t-1}$. 
 
 ```{r figs, echo=FALSE, warning=F,fig.cap="\\label{fig:vd}Chosen $v_d$ Functions Behavior"}
 
@@ -283,339 +284,58 @@ plot(Y[2:T]~Z[1:(T-1)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Xt-1")
 
 ## Estimation and evaluation
 
-To guarantee a fair comparison between the method proposed by @Sottile2020 and the innovations included in the present work, we implemented the _global-qr_ function, a re-implementation of the _piqr_ function from @Sottile2020 using the CVXR R-package (@cvxr2020) for convex optimization, minimizing the objective function described in \ref{eq:betafuncpen}. The difference is that, instead of the integral of the $\tau$ grid, we used the sum of the $M$ $\tau$'s of the grid. The results of the _global-qr_ function are asymptotically equivalent to the estimated coefficients of the _piqr_ function. Figures \ref{piqrcomp_alpha0}, \ref{piqrcomp_alpha1} and \ref{piqrcomp_alpha1} illustrate the estimated coefficients $\alpha_0$, $alpha_1$ and $theta_1$ from section \ref{simulation}, respectively, using the _piqr_ function and the equivalent _global-qr_ implementation with a $tau$-grid of size 50. Furthermore, we added parameters to allow performing adaptive LASSO penalization, described in \ref{eq:betafuncpenAda}, as well as the WLadaLasso penalization from @Konzen2016. Also, there are parameters to replace the traditional LASSO penalization from \ref{eq:betafuncpen} by the group LASSO penalization, described by \ref{eq:betafuncpenAdaGroup}. The code for _global-qr_ can be found in @Bellini2021.
+To guarantee a fair comparison between the method proposed by @Sottile2020 and the innovations included in the present work, we implemented the _global-qr_^[https://github.com/taisbellini/series-temporais/tree/main/trabalho_series] function, a re-implementation of the _piqr_ function from @Sottile2020 using the CVXR R-package (@cvxr2020) for convex optimization, minimizing the objective function described in \ref{eq:betafuncpen}. The difference is that, instead of the integral of the $\tau$ grid, we used the sum of the $M$ $\tau$'s of the grid. The results of the _global-qr_ function are asymptotically equivalent to the estimated coefficients of the _piqr_ function. Figure \ref{fig:piqrcomp} illustrate the estimated coefficients $\alpha_0$, $\alpha_1$ and $\theta_1$ from section \ref{simulation}, respectively, using the _piqr_ function and the equivalent _global-qr_ implementation with a $\tau$ grid of size 50. Furthermore, we added parameters to allow performing adaptive LASSO penalization, described in \ref{eq:betafuncpenAda}, as well as the WLadaLASSO penalization from @Konzen2016. Also, there are parameters to replace the traditional LASSO penalization from \ref{eq:betafuncpen} by the group LASSO penalization, described by \ref{eq:betafuncpenAdaGroup}.
 
-![Alpha0 estimation \label{piqrcomp_alpha0}](comp_piqr_a0_noreal.png) ![Alpha 1 estimation \label{piqrcomp_alpha1}](comp_piqr_a1_noreal.png) ![Theta 1 estimation \label{piqrcomp_theta1}](comp_piqr_t1_noreal.png)
+```{r alpha_0, echo=FALSE, warning=F, out.width="52%", out.height="22%", fig.show='hold',fig.align='center', fig.cap="\\label{fig:piqrcomp} Coefficient estimation"}
+knitr::include_graphics(c('comp_piqr_a0_noreal.png', 'comp_piqr_a1_noreal.png', 'comp_piqr_t1_noreal.png'))
+```
 
-To test the proposed approach, we used Monte Carlo simulations with 200 replications using the method described in section \ref{simulation} to generate QADL processes of 500 observations. Since the goal of this work is to compare the coefficient estimation and variable selection methods, we fixed the $lambda$ parameter in 1, and the $p$ and $\alpha$ parameters to calculate $\omega_j$ from \ref{eq:betafuncpenAdaGroup} in 1 and 0.5, respectively. For each iteration, we globally estimated the coefficients using _global-qr_ function with the possible permutations: $l^1$ penalization ( _piqr_ equivalent) and $l^2$ penalization (group LASSO), with and without weights (adaptive LASSO), considering or not the lags to compute the weight (WLadaLasso). This results in 6 different estimation. In addition, they were compared to the regular quantile regression function from the _quantreg_ R package. Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed with 3 different datasets:
+To test the proposed approach, we used Monte Carlo simulations with 200 replications using the method described in section \ref{simulation} to generate QADL processes of 500 observations. Since the goal of this work is to compare the coefficient estimation and variable selection methods, we fixed the $\lambda$ parameter in 1, and the $p$ and $\alpha$ parameters to calculate $\omega_j$ from \ref{eq:betafuncpenAdaGroup} in 1 and 0.5, respectively. Additionally, the number of functions in $\varphi(\tau)$ is 5 and the tolerance to set the coefficient to zero is $1e^{-6}$. For each iteration, we globally estimated the coefficients using _global-qr_ function with the possible permutations: $l^1$ penalization ( _piqr_ equivalent) and $l^2$ penalization (group LASSO), with and without weights (adaptive LASSO), considering or not the lags to compute the weight (WLadaLASSO). This results in 6 different estimation. In addition, they were compared to the regular quantile regression function from the _quantreg_ R package. Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed with a dataset only with the simulated $Y_{t-1}$ and $X_{t-1}$ as covariates, and another dataset with the simulated $Y_{t-1}$ and $X_{t-1}$ with the addition of $Y_{t-2}$ and $X_{t-2}$;
 
-\begin{longlist}
-\item[11]
-A dataset only with the simulated $Y_{t-1}$ and $X_{t-1}$ as covariates;
-\item[2.]
-A dataset with the simulated $Y_{t-1}$ and $X_{t-1}$ with the addition of $Y_{t-2}$ and $X_{t-2}$;
-\item[3.]
-A dataset with 10 lags of each covariate $Y$ and $X$;
-\end{longlist}
-
-We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection.The metrics used were SSR on two dimensions: by variable and quantile.
+We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection.The metric used was Mean Squared Error (MSE) by coefficient, such as we can evaluate estimation in general and effectivity in selecting variables.
 
 # Results \label{results}
 
-## Database with one lag
+When testing in a dataset that didn't have zero coefficient variables, the implementation equivalent to the _piqr_ method from @Sottile2020 had consistently better results across all variables, as noted in the plot of the mean squared error results for the estimation of the coefficient for each variable in Figure \ref{fig:lag1_results}. Interestingly, this method provided better results than the traditional quantile regression implemented in _quantreg_ package. As expected, the estimations using WLadaLASSO did not differ from adaLASSO, as we only had one lag, so the penalization was the same for all variables in both cases.
 
-## Database with two lags
 
-## Database with ten lags
+```{r mse_lag1, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:lag1_results} MSE in dataset with one lag"}
+knitr::include_graphics('mse_lag1.png')
+```
+
+When adding covariates to the dataset, including variables $Y$ and $X$ with two lags, we can observe that the proposed penalization innovations provide better results when estimating coefficients and selecting the variables. When comparing the _piqr_ implementation with group LASSO, the results are similar, and the method from @Sottile2020 has lower MSE, as illustrated in Figure \ref{fig:mse_lag2}. 
+
+```{r mse_lag2, echo=FALSE, warning=F, out.width="90%", fig.pos='H', fig.cap="\\label{fig:mse_lag2} MSE in dataset with two lags"}
+knitr::include_graphics('mse_lag2.png')
+```
+
+However, when adding the weights to the penalization, one can notice a better performance, specially in selecting the variables. Figures \ref{fig:piqr} and \ref{fig:piqr_zero} illustrate the comparison between the coefficient estimation for each variable with different methods. Notice from Figure \ref{fig:piqr_zero} that the weighted approaches set the zero coefficients correctly more often. 
+
+```{r piqr, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:piqr} PIQR estimation"}
+knitr::include_graphics('piqr_W_WL_lags2.png')
+```
+
+```{r piqr_zero, echo=FALSE, warning=F, out.width="90%",fig.pos = 'H', fig.cap="\\label{fig:piqr_zero} PIQR variable selection"}
+knitr::include_graphics('piqr_W_WL_lags2_zero.png')
+```
+
+Similar results are observed when applying the weighted penalization to the group LASSO approach, as illustrated in Figures \ref{fig:gLasso} and \ref{fig:gLasso_zero}.
+
+```{r gLasso, echo=FALSE, warning=F, out.width="90%",fig.pos = 'H', fig.cap="\\label{fig:gLasso} Group LASSO coefficient estimation"}
+knitr::include_graphics('gLasso_W_WL.png')
+```
+
+```{r gLasso_zero, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H',fig.cap="\\label{fig:gLasso_zero} Group LASSO variable selection"}
+knitr::include_graphics('gLasso_W_WL_zero.png')
+```
+
 
 # Final discussions and future work \label{conclusion}
 
-@Frumento2016 and @Sottile2021 introduced an important solution to the complexity of variable selection in quantile regression modeling. In this work, it was proposed to evaluate increments in the LASSO penalization, considering the context of the data, incorporating the group LASSO and WLadaALASSO penalizations to the method. It was possible to observe ... 
-In this work, the goal was to compare the proposed additions to @Sottile2021 framework and traditional quantile regression. For further studies, it is interesting to evaluate different parametrization to the proposed method, finding the optimal $lambda$, $p$, $\alpha$, and minimum $\tau$-grid. Furthermore, different QADL data generation processes should be explored as well as applying the approached in real data, to better assess the relevance of considering the lags to penalize the coefficient estimation.
+@Frumento2016 and @Sottile2020 introduced an important solution to the complexity of variable selection in quantile regression modeling. In this work, it was proposed to evaluate increments in the LASSO penalization, considering the context of the data and incorporating the group LASSO and WLadaALASSO penalization to the method. The results suggest that a weighted penalized approach can provide better results in selecting the variables and at estimating the coefficients. In particular, both LASSO and group LASSO penalization with higher weights for higher lags combinations had lower mean squared error to estimate most of the tested scenarios and set the zero coefficients correctly more often.
 
-## Lists
+In this work, the aim was to compare the proposed additions to @Sottile2020 framework and traditional quantile regression. For further studies, it is interesting to evaluate different parametrization to the proposed method, finding the optimal $lambda$, $p$, $\alpha$, and minimum $\tau$-grid. Furthermore, different QADL data generation processes should be explored, in particularly schenarios where higher lags have non-zero coefficients, as well as adding more lags to the testing database. Also, it is interesting to apply the methods in real data scenarios.
 
-The following is an example of an *itemized* list, two levels deep.
- 
-* This is the first item of an itemized list.  Each item
-  in the list is marked with a "tick." The document
-  style determines what kind of tick mark is used.
-* This is the second item of the list.  It contains another
-  list nested inside it.
-  - This is the first item of an itemized list that
-    is nested within the itemized list.
-  - This is the second item of the inner list.  \LaTeX\
-    allows you to nest lists deeper than you really should.
-- This is the third item of the list.
-
-The following is an example of an *enumerated* list of one level.
-
-\begin{longlist}
-\item This is the first item of an enumerated list.
-\item This is the second item of an enumerated list.
-\end{longlist}
-
-The following is an example of an *enumerated* list, two levels deep.
-\begin{longlist}
-\item[1.]
-This is the first item of an enumerated list.  Each item
-in the list is marked with a ``tick.''.  The document
-style determines what kind of tick mark is used.
-\item[2.]
-This is the second item of the list.  It contains another
-list nested inside of it.
-\begin{longlist}
-\item
-This is the first item of an enumerated list that
-is nested within.  
-\item
-This is the second item of the inner list.  \LaTeX\
-allows you to nest lists deeper than you really should.
-\end{longlist}
-This is the rest of the second item of the outer list.
-\item[3.]
-This is the third item of the list.
-\end{longlist}
-
-## Punctuation
-
-Dashes come in three sizes: a hyphen, an intra-word dash like "$U$-statistics" or "the time-homogeneous model";
-a medium dash (also called an "en-dash") for number ranges or between two equal entities like "1--2" or "Cauchy--Schwarz inequality";
-and a punctuation dash (also called an "em-dash") in place of a comma, semicolon,
-colon or parentheses---like this.
-
-Generating an ellipsis \ldots\ with the right spacing
-around the periods requires a special command.
-
-# Fonts
-
-Please use text fonts in text mode, e.g.:
-\begin{itemize}
-\item[]\textrm{Roman}
-\item[]\textit{Italic}
-\item[]\textbf{Bold}
-\item[]\textsc{Small Caps}
-\item[]\textsf{Sans serif}
-\item[]\texttt{Typewriter}
-\end{itemize}
-Please use mathematical fonts in mathematical mode, e.g.:
-\begin{itemize}
-\item[] $\mathrm{ABCabc123}$
-\item[] $\mathit{ABCabc123}$
-\item[] $\mathbf{ABCabc123}$
-\item[] $\boldsymbol{ABCabc123\alpha\beta\gamma}$
-\item[] $\mathcal{ABC}$
-\item[] $\mathbb{ABC}$
-\item[] $\mathsf{ABCabc123}$
-\item[] $\mathtt{ABCabc123}$
-\item[] $\mathfrak{ABCabc123}$
-\end{itemize}
-Note that \verb|\mathcal, \mathbb| belongs to capital letters-only font typefaces.
-
-# Notes
-
-Footnotes[^1]
-pose no problem.[^2]
-
-[^1]: This is an example of a footnote.
-[^2]: Note that footnote number is after punctuation.
-
-# Quotations
-
-Text is displayed by indenting it from the left margin. There are short quotations
-
-> This is a short quotation.  It consists of a
-> single paragraph of text.  There is no paragraph
-> indentation.
-
-and longer ones.
-
-<!-- custom blocks syntax https://bookdown.org/yihui/rmarkdown-cookbook/custom-blocks.html -->
-
-::: {.quotation data-latex=""}
-This is a longer quotation.  It consists of two paragraphs
-of text.  The beginning of each paragraph is indicated
-by an extra indentation.
-
-This is the second paragraph of the quotation.  It is just
-as dull as the first paragraph.
-:::
-
-# Environments
-
-## Examples for *`plain`-style environments*
-
-::: {.axiom data-latex=""}
-\label{ax1}
-This is the body of Axiom \ref{ax1}.
-:::
-
-::: {.proof data-latex=""}
-This is the body of the proof of the axiom above.
-:::
-
-::: {.claim data-latex=""}
-\label{cl1}
-This is the body of Claim \ref{cl1}. Claim \ref{cl1} is numbered after
-Axiom \ref{ax1} because we used \verb|[axiom]| in \verb|\newtheorem|.
-:::
-
-::: {.theorem data-latex=""}
-\label{th1}
-This is the body of Theorem \ref{th1}. Theorem \ref{th1} numbering is
-dependent on section because we used \verb|[section]| after \verb|\newtheorem|.
-:::
-
-::: {.theorem data-latex="[Title of the theorem]"}
-\label{th2}
-This is the body of Theorem \ref{th2}. Theorem \ref{th2} has additional title.
-:::
-
-::: {.lemma data-latex=""}
-\label{le1}
-This is the body of Lemma \ref{le1}. Lemma \ref{le1} is numbered after
-Theorem \ref{th2} because we used \verb|[theorem]| in \verb|\newtheorem|.
-:::
-
-::: {.proof data-latex="[Proof of Lemma \ref{le1}]"}
-This is the body of the proof of Lemma \ref{le1}.
-:::
-
-## Examples for *`remark`*-style environments
-::: {.definition data-latex=""}
-\label{de1}
-This is the body of Definition \ref{de1}. Definition \ref{de1} is numbered after
-Lemma \ref{le1} because we used \verb|[theorem]| in \verb|\newtheorem|.
-:::
-
-::: {.example data-latex=""}
-This is the body of the example. Example is unnumbered because we used \verb|\newtheorem*|
-instead of \verb|\newtheorem|.
-:::
-
-::: {.fact data-latex=""}
-This is the body of the fact. Fact is unnumbered because we used \verb|\newtheorem*|
-instead of \verb|\newtheorem|.
-:::
-
-# Tables and figures
-Cross-references to labeled tables: As you can see in Table\ref{tab:mtc}
-and also in Table\ref{parset}.
-
-```{r mtc, echo = FALSE}
-knitr::kable(mtcars, caption = "Table caption", format = "latex", vline = "", linesep = "")
-```
-
-\begin{table}
-\caption{Sample posterior estimates for each model}
-\label{parset}
-%
-\begin{tabular}{@{}lcrcrrr@{}}
-\hline
-&& & &\multicolumn{3}{c}{Quantile} \\
-\cline{5-7}
-Model &Parameter &
-\multicolumn{1}{c}{Mean} &
-Std. dev.&
-\multicolumn{1}{c}{2.5\%} &
-\multicolumn{1}{c}{50\%}&
-\multicolumn{1}{c@{}}{97.5\%} \\
-\hline
-{Model 0} & $\beta_0$ & $-$12.29 & 2.29 & $-$18.04 & $-$11.99 & $-$8.56 \\
-          & $\beta_1$  & 0.10   & 0.07 & $-$0.05  & 0.10   & 0.26  \\
-          & $\beta_2$   & 0.01   & 0.09 & $-$0.22  & 0.02   & 0.16  \\[6pt]
-{Model 1} & $\beta_0$   & $-$4.58  & 3.04 & $-$11.00 & $-$4.44  & 1.06  \\
-          & $\beta_1$   & 0.79   & 0.21 & 0.38   & 0.78   & 1.20  \\
-          & $\beta_2$   & $-$0.28  & 0.10 & $-$0.48  & $-$0.28  & $-$0.07 \\[6pt]
-{Model 2} & $\beta_0$   & $-$11.85 & 2.24 & $-$17.34 & $-$11.60 & $-$7.85 \\
-          & $\beta_1$   & 0.73   & 0.21 & 0.32   & 0.73   & 1.16  \\
-          & $\beta_2$   & $-$0.60  & 0.14 & $-$0.88  & $-$0.60  & $-$0.34 \\
-          & $\beta_3$   & 0.22   & 0.17 & $-$0.10  & 0.22   & 0.55  \\
-\hline
-\end{tabular}
-%
-\end{table}
-
-
-```{r,echo=FALSE,fig.cap="Figure caption\\label{penG}"}
-plot(1:10)
-```
-
-Sample of cross-reference to figure.
-Figure\ref{penG} shows that it is not easy to get something on paper.
-
-# Equations and the like
-
-Two equations:
-\begin{equation}
-    C_{s}  =  K_{m} \frac{\mu/\mu_{x}}{1-\mu/\mu_{x}} \label{ccs}
-\end{equation}
-and
-\begin{equation}
-    G = \frac{P_{\mathrm{opt}} - P_{\mathrm{ref}}}{P_{\mathrm{ref}}}  100(\%).
-\end{equation}
-
-Equation arrays:
-\begin{eqnarray}
-  \frac{dS}{dt} & = & - \sigma X + s_{F} F,\\
-  \frac{dX}{dt} & = &   \mu    X,\\
-  \frac{dP}{dt} & = &   \pi    X - k_{h} P,\\
-  \frac{dV}{dt} & = &   F.
-\end{eqnarray}
-One long equation:
-\begin{eqnarray}
- \mu_{\text{normal}} & = & \mu_{x} \frac{C_{s}}{K_{x}C_{x}+C_{s}}  \nonumber\\
-                     & = & \mu_{\text{normal}} - Y_{x/s}\bigl(1-H(C_{s})\bigr)(m_{s}+\pi /Y_{p/s})\\
-                     & = & \mu_{\text{normal}}/Y_{x/s}+ H(C_{s}) (m_{s}+ \pi /Y_{p/s}).\nonumber
-\end{eqnarray}
-
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-<!-- %% Example with single Appendix:            %% -->
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-
-::: {.appendix data-latex=""}
-# Title {.unnumbered #appn}
-
-Appendices should be provided in \verb|{appendix}| environment,
-before Acknowledgements.
-
-If there is only one appendix,
-then please refer to it in text as \ldots\ in the \hyperref[appn]{Appendix}.
-:::
-
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-<!-- %% Example with multiple Appendixes:        %% -->
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-
-::: {.appendix data-latex=""}
-# Title of the first appendix {#appA}
-If there are more than one appendix, then please refer to it
-as \ldots\ in Appendix \ref{appA}, Appendix \ref{appB}, etc.
-
-# Title of the second appendix {#appB}
-
-## First subsection of Appendix \protect\ref{appB}
-Use the standard \LaTeX\ commands for headings in \verb|{appendix}|.
-Headings and other objects will be numbered automatically.
-
-\begin{equation}
-\mathcal{P}=(j_{k,1},j_{k,2},\dots,j_{k,m(k)}). \label{path}
-\end{equation}
-
-Sample of cross-reference to the formula (\ref{path}) in Appendix \ref{appB}.
-:::
-
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-<!-- %% Support information (funding), if any,   %% -->
-<!-- %% should be provided in the                %% -->
-<!-- %% Acknowledgements section.                %% -->
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-
-## Acknowledgements {.unnumbered}
-
-The authors would like to thank the anonymous referees, an Associate
-Editor and the Editor for their constructive comments that improved the
-quality of this paper.
-
-The first author was supported by NSF Grant DMS-??-??????.
-
-The second author was supported in part by NIH Grant ???????????.
-
-
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-<!-- %% Supplementary Material, if any, should   %% -->
-<!-- %% be provided in {supplement} environment  %% -->
-<!-- %% with title and short description.        %% -->
-<!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
-
-\begin{supplement}
-\stitle{Title of Supplement A}
-\sdescription{Short description of Supplement A.}
-\end{supplement}
-\begin{supplement}
-\stitle{Title of Supplement B}
-\sdescription{Short description of Supplement B.}
-\end{supplement}
 
 <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
 <!-- %%                  The Bibliography                       %% -->

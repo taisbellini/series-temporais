@@ -40,12 +40,9 @@ weights = function(a, lags, Y, X, TAUS, phi){
   if (lags != 0){
     lag_penalty = numeric()
     lag_penalty[1] = 1
-    if(lags > 1){
-      for(l in 2:lags){
-        lag_penalty[l] = lag_penalty[l-1] + 1
-      }
+    for(l in 1:lags){
+      lag_penalty = c(lag_penalty, l, l)
     }
-    lag_penalty = c(1, lag_penalty, lag_penalty)
   }
   else {
     lag_penalty = rep(1,nrow(a))
