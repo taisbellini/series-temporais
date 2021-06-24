@@ -3,7 +3,6 @@
 
 # set.seed(1)
 library(quantreg)
-library(conquer)
 library(forecast)
 library(qrcmNP)
 source('utils.R')
@@ -114,6 +113,12 @@ adf.test(Y)
 
 # True and estimated functional parameters
 
+qardl_sim = simulate_qardl(Q, Q)
+Y = qardl_sim$Y
+Z = qardl_sim$Z
+
+T = 10001
+
 # quantile regression
 Yvec = Y[2:T]
 Xmat = cbind(Y[1:(T-1)], Z[1:(T-1)])
@@ -162,7 +167,7 @@ mean(conquerfit[5,])
 
 # global coefficients Sottile
 # Estimate qadl time series coefficients using qrcm
-k.user = 3
+k.user = 7
 p = length(tau.grid)
 fo3o = piqr(Yvec_lags~Xmat_lags, formula.p = ~slp(p,k=k.user), lambda = 10)
 fo4o=slp(tau.grid,k=k.user)
