@@ -287,7 +287,7 @@ plot(Y[2:T]~Z[1:(T-1)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Xt-1")
 To guarantee a fair comparison between the method proposed by @Sottile2020 and the innovations included in the present work, we implemented the _global-qr_^[https://github.com/taisbellini/series-temporais/tree/main/trabalho_series] function, a re-implementation of the _piqr_ function from @Sottile2020 using the CVXR R-package (@cvxr2020) for convex optimization, minimizing the objective function described in \ref{eq:betafuncpen}. The difference is that, instead of the integral of the $\tau$ grid, we used the sum of the $M$ $\tau$'s of the grid. The results of the _global-qr_ function are asymptotically equivalent to the estimated coefficients of the _piqr_ function. Figure \ref{fig:piqrcomp} illustrate the estimated coefficients $\alpha_0$, $\alpha_1$ and $\theta_1$ from section \ref{simulation}, respectively, using the _piqr_ function and the equivalent _global-qr_ implementation with a $\tau$ grid of size 50. Furthermore, we added parameters to allow performing adaptive LASSO penalization, described in \ref{eq:betafuncpenAda}, as well as the WLadaLASSO penalization from @Konzen2016. Also, there are parameters to replace the traditional LASSO penalization from \ref{eq:betafuncpen} by the group LASSO penalization, described by \ref{eq:betafuncpenAdaGroup}.
 
 ```{r alpha_0, echo=FALSE, warning=F, out.width="52%", out.height="22%", fig.show='hold',fig.align='center', fig.cap="\\label{fig:piqrcomp} Coefficient estimation"}
-knitr::include_graphics(c('comp_piqr_a0_noreal.png', 'comp_piqr_a1_noreal.png', 'comp_piqr_t1_noreal.png'))
+knitr::include_graphics(c('img/comp_piqr_a0_noreal.png', 'img/comp_piqr_a1_noreal.png', 'img/comp_piqr_t1_noreal.png'))
 ```
 
 To test the proposed approach, we used Monte Carlo simulations with 200 replications using the method described in section \ref{simulation} to generate QADL processes of 500 observations. Since the goal of this work is to compare the coefficient estimation and variable selection methods, we fixed the $\lambda$ parameter in 1, and the $p$ and $\alpha$ parameters to calculate $\omega_j$ from \ref{eq:betafuncpenAdaGroup} in 1 and 0.5, respectively. Additionally, the number of functions in $\varphi(\tau)$ is 5 and the tolerance to set the coefficient to zero is $1e^{-6}$. For each iteration, we globally estimated the coefficients using _global-qr_ function with the possible permutations: $l^1$ penalization ( _piqr_ equivalent) and $l^2$ penalization (group LASSO), with and without weights (adaptive LASSO), considering or not the lags to compute the weight (WLadaLASSO). This results in 6 different estimation. In addition, they were compared to the regular quantile regression function from the _quantreg_ R package. Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed with a dataset only with the simulated $Y_{t-1}$ and $X_{t-1}$ as covariates, and another dataset with the simulated $Y_{t-1}$ and $X_{t-1}$ with the addition of $Y_{t-2}$ and $X_{t-2}$;
@@ -300,33 +300,33 @@ When testing in a dataset that didn't have zero coefficient variables, the imple
 
 
 ```{r mse_lag1, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:lag1_results} MSE in dataset with one lag"}
-knitr::include_graphics('mse_lag1.png')
+knitr::include_graphics('img/mse_lag1.png')
 ```
 
 When adding covariates to the dataset, including variables $Y$ and $X$ with two lags, we can observe that the proposed penalization innovations provide better results when estimating coefficients and selecting the variables. When comparing the _piqr_ implementation with group LASSO, the results are similar, and the method from @Sottile2020 has lower MSE, as illustrated in Figure \ref{fig:mse_lag2}. 
 
 ```{r mse_lag2, echo=FALSE, warning=F, out.width="90%", fig.pos='H', fig.cap="\\label{fig:mse_lag2} MSE in dataset with two lags"}
-knitr::include_graphics('mse_lag2.png')
+knitr::include_graphics('img/mse_lag2.png')
 ```
 
 However, when adding the weights to the penalization, one can notice a better performance, specially in selecting the variables. Figures \ref{fig:piqr} and \ref{fig:piqr_zero} illustrate the comparison between the coefficient estimation for each variable with different methods. Notice from Figure \ref{fig:piqr_zero} that the weighted approaches set the zero coefficients correctly more often. 
 
 ```{r piqr, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:piqr} PIQR estimation"}
-knitr::include_graphics('piqr_W_WL_lags2.png')
+knitr::include_graphics('img/piqr_W_WL_lags2.png')
 ```
 
 ```{r piqr_zero, echo=FALSE, warning=F, out.width="90%",fig.pos = 'H', fig.cap="\\label{fig:piqr_zero} PIQR variable selection"}
-knitr::include_graphics('piqr_W_WL_lags2_zero.png')
+knitr::include_graphics('img/piqr_W_WL_lags2_zero.png')
 ```
 
 Similar results are observed when applying the weighted penalization to the group LASSO approach, as illustrated in Figures \ref{fig:gLasso} and \ref{fig:gLasso_zero}.
 
 ```{r gLasso, echo=FALSE, warning=F, out.width="90%",fig.pos = 'H', fig.cap="\\label{fig:gLasso} Group LASSO coefficient estimation"}
-knitr::include_graphics('gLasso_W_WL.png')
+knitr::include_graphics('img/gLasso_W_WL.png')
 ```
 
 ```{r gLasso_zero, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H',fig.cap="\\label{fig:gLasso_zero} Group LASSO variable selection"}
-knitr::include_graphics('gLasso_W_WL_zero.png')
+knitr::include_graphics('img/gLasso_W_WL_zero.png')
 ```
 
 
