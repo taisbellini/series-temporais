@@ -61,30 +61,30 @@ Q = function(tau,Y.current,Z.current){
 
 # Simulating the sample paths:
 
-simulate_qardl = function(N = 10001){
+simulate_qardl = function(N = 10001, Ylag = 1, Xlag = 1){
+        
+        lag_start = max(Ylag, Xlag)
         
         # Arbitrary starting point (Y0,Z0)
-        Y0 = runif(1)
-        Z0 = runif(1)
+        Y = as.vector(runif(lag_start))
+        Z = as.vector(runif(lag_start))
         
-        Y = Z = numeric()
-        Z.current = Z0
-        Y.current = Y0
-
-        for (t in 1:N){
-        # Simulates Y[t] given ℱ[t-1] using the Fundamental Theorem of Simulation
-         Y[t] = Q(runif(1), Y.current, Z.current)
+        for (t in (lag_start+1):N){
+                
+                Y.current = Y[t-Ylag]
+                Z.current = Z[t-Xlag]
+        
+                # Simulates Y[t] given ℱ[t-1] using the Fundamental Theorem of Simulation
+                 Y[t] = Q(runif(1), Y.current, Z.current)
+                 
+                 Z[t] = Q(runif(1), Z.current, Y.current)
+                 # Q(runif(1), Z.current, Y.current)
+                 # Z[t] = runif(1,max(Y[t]-.01,0),min(Y[t]+.01,1))
          
-         Z[t] = Q(runif(1), Z.current, Y.current)
-         # Q(runif(1), Z.current, Y.current)
-         # Z[t] = runif(1,max(Y[t]-.01,0),min(Y[t]+.01,1))
-         
-         Z.current = Z[t]
-         Y.current = Y[t]
         }
         
-        Y = Y[-1]
-        Z = Z[-1]
+        Y = Y[-c(1:lag_start)]
+        Z = Z[-c(1:lag_start)]
         return(list(
                 "Y" = Y,
                 "Z" = Z
