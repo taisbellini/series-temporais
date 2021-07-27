@@ -224,7 +224,7 @@ Q_{Y|X}(\tau|x) = \beta_0(\tau) +  \beta_1(\tau)x_2 + \beta_2(\tau)x_3
 $$
 where $\beta_0(\tau) = v_{00}$,  $\beta_1(\tau) = v_{10}-v_{00}$ and $\beta_2(\tau) = v_{01} - v_{00}$.
 
-### The generated QADL models
+### The generated QADL models \label{qadl_gen}
 
 To study the proposed estimator, we simulate the $Y$ and $X$ variables with the following model:
 $$
@@ -290,9 +290,58 @@ To guarantee a fair comparison between the method proposed by @Sottile2020 and t
 knitr::include_graphics(c('img/comp_piqr_a0_noreal.png', 'img/comp_piqr_a1_noreal.png', 'img/comp_piqr_t1_noreal.png'))
 ```
 
-To test the proposed approach, we used Monte Carlo simulations with 200 replications using the method described in section \ref{simulation} to generate QADL processes of 500 observations. Since the goal of this work is to compare the coefficient estimation and variable selection methods, we fixed the $\lambda$ parameter in 1, and the $p$ and $\alpha$ parameters to calculate $\omega_j$ from \ref{eq:betafuncpenAdaGroup} in 1 and 0.5, respectively. Additionally, the number of functions in $\varphi(\tau)$ is 5 and the tolerance to set the coefficient to zero is $1e^{-6}$. For each iteration, we globally estimated the coefficients using _global-qr_ function with the possible permutations: $l^1$ penalization ( _piqr_ equivalent) and $l^2$ penalization (group LASSO), with and without weights (adaptive LASSO), considering or not the lags to compute the weight (WLadaLASSO). This results in 6 different estimation. In addition, they were compared to the regular quantile regression function from the _quantreg_ R package. Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed with a dataset only with the simulated $Y_{t-1}$ and $X_{t-1}$ as covariates, and another dataset with the simulated $Y_{t-1}$ and $X_{t-1}$ with the addition of $Y_{t-2}$ and $X_{t-2}$;
+To test the proposed approach, we used Monte Carlo simulations with 200 replications using the method described in section \ref{simulation} to generate QADL processes of 500 observations. We generates three different processes: the first, as described in \ref{qadl_gen}; the second, replacing $Y_{t-1}$ and $X_{t-1}$ by $Y_{t-2}$ and $X_{t-2}$,respectively; the last, replacing $Y_{t-1}$ by $Y_{t-5}$.
 
-We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection.The metric used was Mean Squared Error (MSE) by coefficient, such as we can evaluate estimation in general and effectivity in selecting variables.
+```{r, echo=FALSE, message=F, warning=F}
+set.seed(205650)
+source('qardl-gen.r')
+qardl = simulate_qardl(N = 10001, Ylag = 2, Xlag = 2)
+Y2 = qardl$Y
+Z2 = qardl$Z
+```
+
+In Figure \ref{fig:Ycorr2}, the autocorrelation function and the partial autocorrelation function of the process generated with $Y_{t-2}$ and $X_{t-2}$ are illustrated, as well as the correlation between $Y_t$ and $Y_{t-1}$, $Y_t$ and $Y_{t-2}$, $Y_t$ and $X_{t-1}$, and $Y_t$ and $X_{t-2}$.
+
+```{r Ycorr2, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.cap="\\label{fig:Ycorr2}ACF,PACF and correlations of Yt and Xt"}
+
+T = length(Y)
+par(mfrow=c(3,2))
+acf(Y2, lwd=16, lend=3, col='gray')
+pacf(Y2, lwd=16, lend=3, col='gray')
+plot(Y2[2:T]~Y2[1:(T-1)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Yt-1")
+plot(Y2[3:T]~Y2[1:(T-2)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Yt-2")
+plot(Y2[2:T]~Z2[1:(T-1)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Xt-1")
+plot(Y2[3:T]~Z2[1:(T-2)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Xt-2")
+```
+
+```{r, echo=FALSE, message=F, warning=F}
+set.seed(205650)
+source('qardl-gen.r')
+qardl = simulate_qardl(N = 10001, Ylag = 5, Xlag = 1)
+Y5 = qardl$Y
+Z1 = qardl$Z
+```
+
+In addition, Figure \ref{fig:Ycorr3} demonstrates the autocorrelation and partial autocorrelation functions of the process generated with $Y_{t-5}$ and $X_{t-1}$, and also the correlation between $Y_t$ and $Y_{t-1}$, $Y_t$ and $Y_{t-5}$, $Y_t$ and $X_{t-1}$, and $Y_t$ and $X_{t-2}$.
+
+```{r Ycorr3, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.cap="\\label{fig:Ycorr3}ACF,PACF and correlations of Yt and Xt"}
+
+T = length(Y)
+par(mfrow=c(3,2))
+acf(Y5, lwd=16, lend=3, col='gray')
+pacf(Y5, lwd=16, lend=3, col='gray')
+plot(Y5[2:T]~Y5[1:(T-1)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Yt-1")
+plot(Y5[6:T]~Y5[1:(T-5)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Yt-5")
+plot(Y5[2:T]~Z1[1:(T-1)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Xt-1")
+plot(Y5[3:T]~Z1[1:(T-2)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Xt-2")
+```
+
+
+Since the goal of this work is to compare the coefficient estimation and variable selection methods, we fixed the $\lambda$ parameter in 1, and the $p$ and $\alpha$ parameters to calculate $\omega_j$ from \ref{eq:betafuncpenAdaGroup} in 1 and 0.5, respectively. Additionally, the number of functions in $\varphi(\tau)$ is 5 and the tolerance to set the coefficient to zero is $1e^{-6}$. For each iteration, we globally estimated the coefficients using _global-qr_ function with the possible permutations: $l^1$ penalization ( _piqr_ equivalent) and $l^2$ penalization (group LASSO), with and without weights (adaptive LASSO), considering or not the lags to compute the weight (WLadaLASSO). This results in 6 different estimation. In addition, they were compared to the regular quantile regression function from the _quantreg_ R package. 
+
+Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed for each generated process. The dataset used for validation was created with an intercept column and 10 lags of each covariate generated resulting in 21 columns, including the intercept.
+
+We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection. The metric used was Mean Squared Error (MSE) by coefficient, such as we can evaluate estimation in general and effectivity in selecting variables.
 
 # Results \label{results}
 
