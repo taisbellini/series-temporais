@@ -82,7 +82,7 @@ global_qr = function(taus = c(0.5), phi = matrix(), X = matrix(), y = c(), lambd
     we = rep(1, nrow(a))
   }
   
-  if(we == "error") return (list("bhat" = "error"))
+  if(typeof(we) == "character") return (list("bhat" = "error"))
   
   objective = R(a, Y, X, TAUS, phi) + lambda*penalty(a, f, we)
   problem = Problem(Minimize(objective))
