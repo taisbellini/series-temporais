@@ -347,6 +347,8 @@ for (i in 1:nrep) {
         }
 }
 
+#### SE ####
+## difference of estimated coefficients with real ones for each row (nrep) ## 
 Y5_X1.se_qr = list()
 Y5_X1.se_piqr = list()
 Y5_X1.se_piqrW = list()
@@ -442,3 +444,58 @@ levels(Y5_X1.sse_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3"
 library(reshape2)
 Y5_X1.sse.m_1 <- melt(Y5_X1.sse_df, id.vars  = c("method", "var"))
 ggplot(data = Y5_X1.sse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("SSE")
+
+#### Variable Selection ####
+
+Y5_X1.vs = list(length(Y5_X1.betas_qr))
+
+for (i in 1:length(Y5_X1.betas_qr)){
+        Y5_X1.vs[[i]] = ifelse(is.null(nrow(Y5_X1.betas_qr[[i]][rowSums(Y5_X1.betas_qr[[i]]) == 0,])), 0, nrow(Y5_X1.betas_qr[[i]][rowSums(Y5_X1.betas_qr[[i]]) == 0,])) 
+        Y5_X1.vs[[i]] = c(Y5_X1.vs[[i]], ifelse(is.null(nrow(Y5_X1.betas_piqr[[i]][rowSums(Y5_X1.betas_piqr[[i]]) == 0,])), 0, nrow(Y5_X1.betas_piqr[[i]][rowSums(Y5_X1.betas_piqr[[i]]) == 0,])))
+        Y5_X1.vs[[i]] = c(Y5_X1.vs[[i]], ifelse(is.null(nrow(Y5_X1.betas_piqrW[[i]][rowSums(Y5_X1.betas_piqrW[[i]]) == 0,])), 0, nrow(Y5_X1.betas_piqrW[[i]][rowSums(Y5_X1.betas_piqrW[[i]]) == 0,])))
+        Y5_X1.vs[[i]] = c(Y5_X1.vs[[i]], ifelse(is.null(nrow(Y5_X1.betas_piqrWL[[i]][rowSums(Y5_X1.betas_piqrWL[[i]]) == 0,])), 0, nrow(Y5_X1.betas_piqrWL[[i]][rowSums(Y5_X1.betas_piqrWL[[i]]) == 0,])))
+        Y5_X1.vs[[i]] = c(Y5_X1.vs[[i]], ifelse(is.null(nrow(Y5_X1.betas_gLasso[[i]][rowSums(Y5_X1.betas_gLasso[[i]]) == 0,])), 0, nrow(Y5_X1.betas_gLasso[[i]][rowSums(Y5_X1.betas_gLasso[[i]]) == 0,])))
+        Y5_X1.vs[[i]] = c(Y5_X1.vs[[i]], ifelse(is.null(nrow(Y5_X1.betas_gLassoW[[i]][rowSums(Y5_X1.betas_gLassoW[[i]]) == 0,])), 0, nrow(Y5_X1.betas_gLassoW[[i]][rowSums(Y5_X1.betas_gLassoW[[i]]) == 0,])))
+        Y5_X1.vs[[i]] = c(Y5_X1.vs[[i]], ifelse(is.null(nrow(Y5_X1.betas_gLassoWL[[i]][rowSums(Y5_X1.betas_gLassoWL[[i]]) == 0,])), 0, nrow(Y5_X1.betas_gLassoWL[[i]][rowSums(Y5_X1.betas_gLassoWL[[i]]) == 0,])))
+        names(Y5_X1.vs[[i]]) = c("QR","piqr","piqrW","piqrWL","gLasso","gLassoW","gLassoWL")
+}
+
+
+Y5_X1.vs_taus_df <- lapply(seq_along(Y5_X1.vs), function(i) {
+        df = data.frame(Y5_X1.vs[[i]])
+        df$var = i
+        df$method = c(1,2,3,4,5,6,7)
+        return(df)
+})
+
+Y5_X1.vs_taus_df$method = as.factor(Y5_X1.vs_taus_df$method)
+Y5_X1.vs_taus_df$var = as.factor(Y5_X1.vs_taus_df$var)
+
+Y5_X1.vs_df = data.frame("vs" = Y5_X1.vs[[1]], "var" = rep(1, 7), "method" = c(1,2,3,4,5,6,7))
+for (i in 2:length(Y5_X1.vs)){
+        Y5_X1.vs_df = rbind(Y5_X1.vs_df, data.frame("vs" = Y5_X1.vs[[i]], "var" = rep(i, 7), "method"= c(1,2,3,4,5,6,7)))
+}
+
+Y5_X1.vs_df$method = as.factor(Y5_X1.vs_df$method)
+Y5_X1.vs_df$var = as.factor(Y5_X1.vs_df$var)
+levels(Y5_X1.vs_df$method) = c("QR", "piqr", "piqrW", "piqrWL", "gLasso", "gLassoW", "gLassoWL")
+levels(Y5_X1.vs_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                             "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                             "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+
+library(reshape2)
+Y5_X1.vs.m_1 <- melt(Y5_X1.vs_df, id.vars  = c("method", "var"))
+ggplot(data = Y5_X1.vs.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("# of times var was set to zero")
+
+
+
+
+
+
+
+
+
+
+
+
+
