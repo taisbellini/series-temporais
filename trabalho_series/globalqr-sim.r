@@ -261,7 +261,7 @@ ggplot(data = X1_Y1.mse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method
 
 #### Monte Carlo sim Y5 X1####
 
-nrep = 10
+nrep = 500
 
 tau.grid = seq(from = .1, to=.9, by=.1)
 M = length(tau.grid)
@@ -366,6 +366,7 @@ for (i in 1:length(Y5_X1.betas_qr)){
         Y5_X1.se_gLassoWL[[i]] = t(apply(Y5_X1.betas_gLassoWL[[i]][-1,], 1, function(row) {(row - Y5_X1.betas_gLassoWL[[i]][1,])^2}))
 }
 
+#### MSE ####
 Y5_X1.mse = list()
 for (i in 1:length(Y5_X1.betas_qr)){
         Y5_X1.mse[[i]] = apply(Y5_X1.se_qr[[i]], 2, mean)
@@ -402,3 +403,42 @@ levels(Y5_X1.mse_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3"
 library(reshape2)
 Y5_X1.mse.m_1 <- melt(Y5_X1.mse_df, id.vars  = c("method", "var"))
 ggplot(data = Y5_X1.mse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("MSE")
+
+
+#### SSE ####
+Y5_X1.sse = list()
+for (i in 1:length(Y5_X1.betas_qr)){
+        Y5_X1.sse[[i]] = apply(Y5_X1.se_qr[[i]], 2, mean)
+        Y5_X1.sse[[i]] = rbind(Y5_X1.sse[[i]], apply(Y5_X1.se_piqr[[i]], 2, sum))
+        Y5_X1.sse[[i]] = rbind(Y5_X1.sse[[i]], apply(Y5_X1.se_piqrW[[i]], 2, sum))
+        Y5_X1.sse[[i]] = rbind(Y5_X1.sse[[i]], apply(Y5_X1.se_piqrWL[[i]], 2, sum))
+        Y5_X1.sse[[i]] = rbind(Y5_X1.sse[[i]], apply(Y5_X1.se_gLasso[[i]], 2, sum))
+        Y5_X1.sse[[i]] = rbind(Y5_X1.sse[[i]], apply(Y5_X1.se_gLassoW[[i]], 2, sum))
+        Y5_X1.sse[[i]] = rbind(Y5_X1.sse[[i]], apply(Y5_X1.se_gLassoW[[i]], 2, sum))
+}
+
+Y5_X1.sse_taus_df <- lapply(seq_along(Y5_X1.sse), function(i) {
+        df = data.frame(Y5_X1.sse[[i]])
+        df$var = rep(i, nrow(Y5_X1.sse[[i]]))
+        df$method = c(1,2,3,4,5,6,7)
+        return(df)
+})
+
+Y5_X1.sse_taus_df$method = as.factor(Y5_X1.sse_taus_df$method)
+Y5_X1.sse_taus_df$var = as.factor(Y5_X1.sse_taus_df$var)
+
+Y5_X1.sse_df = data.frame("mse" = apply(Y5_X1.sse[[1]], 1, sum), "var" = rep(1, 7), "method" = c(1,2,3,4,5,6,7))
+for (i in 2:length(Y5_X1.sse)){
+        Y5_X1.sse_df = rbind(Y5_X1.sse_df, data.frame("mse" = apply(Y5_X1.sse[[i]], 1, sum), "var" = rep(i, 7), "method"= c(1,2,3,4,5,6,7)))
+}
+
+Y5_X1.sse_df$method = as.factor(Y5_X1.sse_df$method)
+Y5_X1.sse_df$var = as.factor(Y5_X1.sse_df$var)
+levels(Y5_X1.sse_df$method) = c("QR", "piqr", "piqrW", "piqrWL", "gLasso", "gLassoW", "gLassoWL")
+levels(Y5_X1.sse_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                             "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                             "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+
+library(reshape2)
+Y5_X1.sse.m_1 <- melt(Y5_X1.sse_df, id.vars  = c("method", "var"))
+ggplot(data = Y5_X1.sse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("SSE")
