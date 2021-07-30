@@ -371,14 +371,26 @@ for (i in 1:length(Y5_X1.betas_qr)){
 #### MSE ####
 Y5_X1.mse = list()
 for (i in 1:length(Y5_X1.betas_qr)){
-        Y5_X1.mse[[i]] = apply(Y5_X1.se_qr[[i]], 2, mean)
-        Y5_X1.mse[[i]] = rbind(Y5_X1.mse[[i]], apply(Y5_X1.se_piqr[[i]], 2, mean))
-        Y5_X1.mse[[i]] = rbind(Y5_X1.mse[[i]], apply(Y5_X1.se_piqrW[[i]], 2, mean))
-        Y5_X1.mse[[i]] = rbind(Y5_X1.mse[[i]], apply(Y5_X1.se_piqrWL[[i]], 2, mean))
-        Y5_X1.mse[[i]] = rbind(Y5_X1.mse[[i]], apply(Y5_X1.se_gLasso[[i]], 2, mean))
-        Y5_X1.mse[[i]] = rbind(Y5_X1.mse[[i]], apply(Y5_X1.se_gLassoW[[i]], 2, mean))
-        Y5_X1.mse[[i]] = rbind(Y5_X1.mse[[i]], apply(Y5_X1.se_gLassoW[[i]], 2, mean))
+        Y5_X1.mse[[i]] = mean(apply(Y5_X1.se_qr[[i]], 2, mean))
+        Y5_X1.mse[[i]] = c(Y5_X1.mse[[i]], mean(apply(Y5_X1.se_piqr[[i]], 2, mean)))
+        Y5_X1.mse[[i]] = c(Y5_X1.mse[[i]], mean(apply(Y5_X1.se_piqrW[[i]], 2, mean)))
+        Y5_X1.mse[[i]] = c(Y5_X1.mse[[i]], mean(apply(Y5_X1.se_piqrWL[[i]], 2, mean)))
+        Y5_X1.mse[[i]] = c(Y5_X1.mse[[i]], mean(apply(Y5_X1.se_gLasso[[i]], 2, mean)))
+        Y5_X1.mse[[i]] = c(Y5_X1.mse[[i]], mean(apply(Y5_X1.se_gLassoW[[i]], 2, mean)))
+        Y5_X1.mse[[i]] = c(Y5_X1.mse[[i]], mean(apply(Y5_X1.se_gLassoWL[[i]], 2, mean)))
+        names(Y5_X1.mse[[i]]) = c("QR","piqr","piqrW","piqrWL","gLasso","gLassoW","gLassoWL")
 }
+
+Y5_X1.mse.table = as.data.frame(do.call(rbind, Y5_X1.mse))
+rownames(Y5_X1.mse.table) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                             "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                             "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+Y5_X1.mse.table.rel = Y5_X1.mse.table[c(1,3,10),]
+
+png("img/Y5X1_mse_table.png", width=350,height=200,bg = "white")
+grid.table(format(t(Y5_X1.mse.table.rel), scientific = T))
+dev.off()
+
 
 Y5_X1.mse_taus_df <- lapply(seq_along(Y5_X1.mse), function(i) {
         df = data.frame(Y5_X1.mse[[i]])
@@ -390,17 +402,15 @@ Y5_X1.mse_taus_df <- lapply(seq_along(Y5_X1.mse), function(i) {
 Y5_X1.mse_taus_df$method = as.factor(Y5_X1.mse_taus_df$method)
 Y5_X1.mse_taus_df$var = as.factor(Y5_X1.mse_taus_df$var)
 
-Y5_X1.mse_df = data.frame("mse" = apply(Y5_X1.mse[[1]], 1, mean), "var" = rep(1, 7), "method" = c(1,2,3,4,5,6,7))
-for (i in 2:length(Y5_X1.mse)){
-        Y5_X1.mse_df = rbind(Y5_X1.mse_df, data.frame("mse" = apply(Y5_X1.mse[[i]], 1, mean), "var" = rep(i, 7), "method"= c(1,2,3,4,5,6,7)))
+Y5_X1.mse_df = data.frame("mse" = Y5_X1.mse[[1]], "var" = rep(1, 7), "method" = c(1,2,3,4,5,6,7))
+for (i in c(3,10)){
+        Y5_X1.mse_df = rbind(Y5_X1.mse_df, data.frame("mse" = Y5_X1.mse[[i]], "var" = rep(i, 7), "method"= c(1,2,3,4,5,6,7)))
 }
 
 Y5_X1.mse_df$method = as.factor(Y5_X1.mse_df$method)
 Y5_X1.mse_df$var = as.factor(Y5_X1.mse_df$var)
 levels(Y5_X1.mse_df$method) = c("QR", "piqr", "piqrW", "piqrWL", "gLasso", "gLassoW", "gLassoWL")
-levels(Y5_X1.mse_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
-                             "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
-                             "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+levels(Y5_X1.mse_df$var) = c("c", "Xt-1", "Yt-5")
 
 library(reshape2)
 Y5_X1.mse.m_1 <- melt(Y5_X1.mse_df, id.vars  = c("method", "var"))
@@ -460,6 +470,15 @@ for (i in 1:length(Y5_X1.betas_qr)){
         names(Y5_X1.vs[[i]]) = c("QR","piqr","piqrW","piqrWL","gLasso","gLassoW","gLassoWL")
 }
 
+Y5_X1.vs.table = as.data.frame(do.call(rbind, Y5_X1.vs))
+rownames(Y5_X1.vs.table) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                             "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                             "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+library(gridExtra)
+
+png("Y5X1_vs_table.png", width=480,height=480,bg = "white")
+grid.table(Y5_X1.vs.table)
+dev.off()
 
 Y5_X1.vs_taus_df <- lapply(seq_along(Y5_X1.vs), function(i) {
         df = data.frame(Y5_X1.vs[[i]])

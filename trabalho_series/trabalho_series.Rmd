@@ -290,7 +290,7 @@ To guarantee a fair comparison between the method proposed by @Sottile2020 and t
 knitr::include_graphics(c('img/comp_piqr_a0_noreal.png', 'img/comp_piqr_a1_noreal.png', 'img/comp_piqr_t1_noreal.png'))
 ```
 
-To test the proposed approach, we used Monte Carlo simulations with 200 replications using the method described in section \ref{simulation} to generate QADL processes of 500 observations. We generates three different processes: the first, as described in \ref{qadl_gen}; the second, replacing $Y_{t-1}$ and $X_{t-1}$ by $Y_{t-2}$ and $X_{t-2}$,respectively; the last, replacing $Y_{t-1}$ by $Y_{t-5}$.
+To test the proposed approach, we used Monte Carlo simulations with 500 replications using the method described in section \ref{simulation} to generate QADL processes of 500 observations. We generate three different processes: the first, as described in \ref{qadl_gen}; the second, replacing $Y_{t-1}$ and $X_{t-1}$ by $Y_{t-2}$ and $X_{t-2}$,respectively; the last, replacing $Y_{t-1}$ by $Y_{t-5}$.
 
 ```{r, echo=FALSE, message=F, warning=F}
 set.seed(205650)
@@ -339,47 +339,31 @@ plot(Y5[3:T]~Z1[1:(T-2)], pch=16, col=rgb(0,0,0,.4), ylab="Yt", xlab="Xt-2")
 
 Since the goal of this work is to compare the coefficient estimation and variable selection methods, we fixed the $\lambda$ parameter in 1, and the $p$ and $\alpha$ parameters to calculate $\omega_j$ from \ref{eq:betafuncpenAdaGroup} in 1 and 0.5, respectively. Additionally, the number of functions in $\varphi(\tau)$ is 5 and the tolerance to set the coefficient to zero is $1e^{-6}$. For each iteration, we globally estimated the coefficients using _global-qr_ function with the possible permutations: $l^1$ penalization ( _piqr_ equivalent) and $l^2$ penalization (group LASSO), with and without weights (adaptive LASSO), considering or not the lags to compute the weight (WLadaLASSO). This results in 6 different estimation. In addition, they were compared to the regular quantile regression function from the _quantreg_ R package. 
 
-Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed for each generated process. The dataset used for validation was created with an intercept column and 10 lags of each covariate generated resulting in 21 columns, including the intercept.
+Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed for each generated process. The dataset used for validation was created with the first column set to one and 10 lags of each covariate generated resulting in 21 columns, including the intercept.
 
-We analyzed two aspects: the coefficients estimation and the chosen variables by the variable selection. The metric used was Mean Squared Error (MSE) by coefficient, such as we can evaluate estimation in general and effectivity in selecting variables.
+We observed two aspects: the coefficients estimation and the variable selection. The metric used to evaluate the estimation of the relevant variables was Mean Squared Error (MSE) by coefficient . The number of times the non-relevant covariates were set to zero was used to analyze the effectivity in selecting variables.
 
 # Results \label{results}
 
-When testing in a dataset that didn't have zero coefficient variables, the implementation equivalent to the _piqr_ method from @Sottile2020 had consistently better results across all variables, as noted in the plot of the mean squared error results for the estimation of the coefficient for each variable in Figure \ref{fig:lag1_results}. Interestingly, this method provided better results than the traditional quantile regression implemented in _quantreg_ package. As expected, the estimations using WLadaLASSO did not differ from adaLASSO, as we only had one lag, so the penalization was the same for all variables in both cases.
+- Y1 X1
+- Y2 X2
 
+In the scenario where the data generation process used $X_{t-1}$ and $Y_{t-5}$ as variables to generate $Y_t$ and $X_t$, we observed that the group LASSO approach with WLadaLASSO consistently zeroed the covariates $Y_{t-6}$ to $Y_{t-10}$ and $X_{t-6}$ to $X_{t-10}$ in all replications, as observed in figure \ref{Y5X1_vs}. In addition, the method also provided better in selecting the lower lag variables, with the exception of $Y_{t-1}$, which group LASSO with adaLASSO weights had a small advantage. Furthermore, the method did not set to zero the relevant variables in most of the replications. Both the _piqr_ equivalent and group LASSO methods with the weighted approach performed much better in selecting variables as compared to the others.
 
-```{r mse_lag1, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:lag1_results} MSE in dataset with one lag"}
-knitr::include_graphics('img/mse_lag1.png')
+```{r vs_Y5X1, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:Y5X1_vs} Number of times each variable was set to zero"}
+knitr::include_graphics('img/vs_Y5X1.png')
 ```
 
-When adding covariates to the dataset, including variables $Y$ and $X$ with two lags, we can observe that the proposed penalization innovations provide better results when estimating coefficients and selecting the variables. When comparing the _piqr_ implementation with group LASSO, the results are similar, and the method from @Sottile2020 has lower MSE, as illustrated in Figure \ref{fig:mse_lag2}. 
+When observing the coefficient estimation of the relevant variables, the group LASSO method with WLadaLASSO weights does not have significantly higher Mean Squared Error than other approaches, as observed in figure \ref{fig:Y5X1_mse_table}.  
 
-```{r mse_lag2, echo=FALSE, warning=F, out.width="90%", fig.pos='H', fig.cap="\\label{fig:mse_lag2} MSE in dataset with two lags"}
-knitr::include_graphics('img/mse_lag2.png')
+```{r mse_Y5X1_table, echo=FALSE, warning=F, out.width="70%", fig.pos = 'H', fig.cap="\\label{fig:Y5X1_mse_table} MSE table of coefficient estimation"}
+knitr::include_graphics('img/Y5X1_mse_table.png')
 ```
-
-However, when adding the weights to the penalization, one can notice a better performance, specially in selecting the variables. Figures \ref{fig:piqr} and \ref{fig:piqr_zero} illustrate the comparison between the coefficient estimation for each variable with different methods. Notice from Figure \ref{fig:piqr_zero} that the weighted approaches set the zero coefficients correctly more often. 
-
-```{r piqr, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:piqr} PIQR estimation"}
-knitr::include_graphics('img/piqr_W_WL_lags2.png')
-```
-
-```{r piqr_zero, echo=FALSE, warning=F, out.width="90%",fig.pos = 'H', fig.cap="\\label{fig:piqr_zero} PIQR variable selection"}
-knitr::include_graphics('img/piqr_W_WL_lags2_zero.png')
-```
-
-Similar results are observed when applying the weighted penalization to the group LASSO approach, as illustrated in Figures \ref{fig:gLasso} and \ref{fig:gLasso_zero}.
-
-```{r gLasso, echo=FALSE, warning=F, out.width="90%",fig.pos = 'H', fig.cap="\\label{fig:gLasso} Group LASSO coefficient estimation"}
-knitr::include_graphics('img/gLasso_W_WL.png')
-```
-
-```{r gLasso_zero, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H',fig.cap="\\label{fig:gLasso_zero} Group LASSO variable selection"}
-knitr::include_graphics('img/gLasso_W_WL_zero.png')
-```
-
 
 # Final discussions and future work \label{conclusion}
+
+
+-> piqr and gLasso didn`t select variables, but need to consider lambda. Further investigation should find the optimal lambda for each method.
 
 @Frumento2016 and @Sottile2020 introduced an important solution to the complexity of variable selection in quantile regression modeling. In this work, it was proposed to evaluate increments in the LASSO penalization, considering the context of the data and incorporating the group LASSO and WLadaALASSO penalization to the method. The results suggest that a weighted penalized approach can provide better results in selecting the variables and at estimating the coefficients. In particular, both LASSO and group LASSO penalization with higher weights for higher lags combinations had lower mean squared error to estimate most of the tested scenarios and set the zero coefficients correctly more often.
 
