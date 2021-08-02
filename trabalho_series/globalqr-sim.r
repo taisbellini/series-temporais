@@ -117,7 +117,7 @@ lines(tau.grid, coef(qrfit)[5,], lwd=2, col = rgb(0,0,0,.7))
 
 #### Monte Carlo sim Y1 X1####
 
-nrep = 10
+nrep = 500
 
 tau.grid = seq(from = .1, to=.9, by=.1)
 M = length(tau.grid)
@@ -203,6 +203,8 @@ for (i in 1:nrep) {
         }
 }
 
+#### Y1X1 SE ####
+
 Y1_X1.se_qr = list()
 Y1_X1.se_piqr = list()
 Y1_X1.se_piqrW = list()
@@ -222,16 +224,29 @@ for (i in 1:length(Y1_X1.betas_qr)){
         Y1_X1.se_gLassoWL[[i]] = t(apply(Y1_X1.betas_gLassoWL[[i]][-1,], 1, function(row) {(row - Y1_X1.betas_gLassoWL[[i]][1,])^2}))
 }
 
+#### Y1X1 MSE ####
 Y1_X1.mse = list()
 for (i in 1:length(Y1_X1.betas_qr)){
-        Y1_X1.mse[[i]] = apply(Y1_X1.se_qr[[i]], 2, mean)
-        Y1_X1.mse[[i]] = rbind(Y1_X1.mse[[i]], apply(Y1_X1.se_piqr[[i]], 2, mean))
-        Y1_X1.mse[[i]] = rbind(Y1_X1.mse[[i]], apply(Y1_X1.se_piqrW[[i]], 2, mean))
-        Y1_X1.mse[[i]] = rbind(Y1_X1.mse[[i]], apply(Y1_X1.se_piqrWL[[i]], 2, mean))
-        Y1_X1.mse[[i]] = rbind(Y1_X1.mse[[i]], apply(Y1_X1.se_gLasso[[i]], 2, mean))
-        Y1_X1.mse[[i]] = rbind(Y1_X1.mse[[i]], apply(Y1_X1.se_gLassoW[[i]], 2, mean))
-        Y1_X1.mse[[i]] = rbind(Y1_X1.mse[[i]], apply(Y1_X1.se_gLassoW[[i]], 2, mean))
+        Y1_X1.mse[[i]] = mean(apply(Y1_X1.se_qr[[i]], 2, mean))
+        Y1_X1.mse[[i]] = c(Y1_X1.mse[[i]], mean(apply(Y1_X1.se_piqr[[i]], 2, mean)))
+        Y1_X1.mse[[i]] = c(Y1_X1.mse[[i]], mean(apply(Y1_X1.se_piqrW[[i]], 2, mean)))
+        Y1_X1.mse[[i]] = c(Y1_X1.mse[[i]], mean(apply(Y1_X1.se_piqrWL[[i]], 2, mean)))
+        Y1_X1.mse[[i]] = c(Y1_X1.mse[[i]], mean(apply(Y1_X1.se_gLasso[[i]], 2, mean)))
+        Y1_X1.mse[[i]] = c(Y1_X1.mse[[i]], mean(apply(Y1_X1.se_gLassoW[[i]], 2, mean)))
+        Y1_X1.mse[[i]] = c(Y1_X1.mse[[i]], mean(apply(Y1_X1.se_gLassoWL[[i]], 2, mean)))
+        names(Y1_X1.mse[[i]]) = c("QR","piqr","piqrW","piqrWL","gLasso","gLassoW","gLassoWL")
 }
+
+Y1_X1.mse.table = as.data.frame(do.call(rbind, Y1_X1.mse))
+rownames(Y1_X1.mse.table) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                              "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                              "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+Y1_X1.mse.table.rel = Y1_X1.mse.table[c(1,2,3),]
+
+png("img/Y1X1_mse_table.png", width=350,height=200,bg = "white")
+grid.table(format(t(Y1_X1.mse.table.rel), scientific = T))
+dev.off()
+
 
 Y1_X1.mse_taus_df <- lapply(seq_along(Y1_X1.mse), function(i) {
         df = data.frame(Y1_X1.mse[[i]])
@@ -258,6 +273,60 @@ levels(Y1_X1.mse_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3"
 library(reshape2)
 X1_Y1.mse.m_1 <- melt(Y1_X1.mse_df, id.vars  = c("method", "var"))
 ggplot(data = X1_Y1.mse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("MSE")
+
+
+#### Variable Selection Y1X1 ####
+
+Y1_X1.vs = list(length(Y1_X1.betas_qr))
+
+for (i in 1:length(Y1_X1.betas_qr)){
+        Y1_X1.vs[[i]] = ifelse(is.null(nrow(Y1_X1.betas_qr[[i]][rowSums(Y1_X1.betas_qr[[i]]) == 0,])), 0, nrow(Y1_X1.betas_qr[[i]][rowSums(Y1_X1.betas_qr[[i]]) == 0,])) 
+        Y1_X1.vs[[i]] = c(Y1_X1.vs[[i]], ifelse(is.null(nrow(Y1_X1.betas_piqr[[i]][rowSums(Y1_X1.betas_piqr[[i]]) == 0,])), 0, nrow(Y1_X1.betas_piqr[[i]][rowSums(Y1_X1.betas_piqr[[i]]) == 0,])))
+        Y1_X1.vs[[i]] = c(Y1_X1.vs[[i]], ifelse(is.null(nrow(Y1_X1.betas_piqrW[[i]][rowSums(Y1_X1.betas_piqrW[[i]]) == 0,])), 0, nrow(Y1_X1.betas_piqrW[[i]][rowSums(Y1_X1.betas_piqrW[[i]]) == 0,])))
+        Y1_X1.vs[[i]] = c(Y1_X1.vs[[i]], ifelse(is.null(nrow(Y1_X1.betas_piqrWL[[i]][rowSums(Y1_X1.betas_piqrWL[[i]]) == 0,])), 0, nrow(Y1_X1.betas_piqrWL[[i]][rowSums(Y1_X1.betas_piqrWL[[i]]) == 0,])))
+        Y1_X1.vs[[i]] = c(Y1_X1.vs[[i]], ifelse(is.null(nrow(Y1_X1.betas_gLasso[[i]][rowSums(Y1_X1.betas_gLasso[[i]]) == 0,])), 0, nrow(Y1_X1.betas_gLasso[[i]][rowSums(Y1_X1.betas_gLasso[[i]]) == 0,])))
+        Y1_X1.vs[[i]] = c(Y1_X1.vs[[i]], ifelse(is.null(nrow(Y1_X1.betas_gLassoW[[i]][rowSums(Y1_X1.betas_gLassoW[[i]]) == 0,])), 0, nrow(Y1_X1.betas_gLassoW[[i]][rowSums(Y1_X1.betas_gLassoW[[i]]) == 0,])))
+        Y1_X1.vs[[i]] = c(Y1_X1.vs[[i]], ifelse(is.null(nrow(Y1_X1.betas_gLassoWL[[i]][rowSums(Y1_X1.betas_gLassoWL[[i]]) == 0,])), 0, nrow(Y1_X1.betas_gLassoWL[[i]][rowSums(Y1_X1.betas_gLassoWL[[i]]) == 0,])))
+        names(Y1_X1.vs[[i]]) = c("QR","piqr","piqrW","piqrWL","gLasso","gLassoW","gLassoWL")
+}
+
+Y1_X1.vs.table = as.data.frame(do.call(rbind, Y1_X1.vs))
+rownames(Y1_X1.vs.table) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                             "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                             "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+library(gridExtra)
+
+png("Y1X1_vs_table.png", width=480,height=480,bg = "white")
+grid.table(Y1_X1.vs.table)
+dev.off()
+
+Y1_X1.vs_taus_df <- lapply(seq_along(Y1_X1.vs), function(i) {
+        df = data.frame(Y1_X1.vs[[i]])
+        df$var = i
+        df$method = c(1,2,3,4,5,6,7)
+        return(df)
+})
+
+Y1_X1.vs_taus_df$method = as.factor(Y1_X1.vs_taus_df$method)
+Y1_X1.vs_taus_df$var = as.factor(Y1_X1.vs_taus_df$var)
+
+Y1_X1.vs_df = data.frame("vs" = Y1_X1.vs[[1]], "var" = rep(1, 7), "method" = c(1,2,3,4,5,6,7))
+for (i in 2:length(Y1_X1.vs)){
+        Y1_X1.vs_df = rbind(Y1_X1.vs_df, data.frame("vs" = Y1_X1.vs[[i]], "var" = rep(i, 7), "method"= c(1,2,3,4,5,6,7)))
+}
+
+Y1_X1.vs_df$method = as.factor(Y1_X1.vs_df$method)
+Y1_X1.vs_df$var = as.factor(Y1_X1.vs_df$var)
+levels(Y1_X1.vs_df$method) = c("QR", "piqr", "piqrW", "piqrWL", "gLasso", "gLassoW", "gLassoWL")
+levels(Y1_X1.vs_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                            "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                            "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+
+library(reshape2)
+Y1_X1.vs.m_1 <- melt(Y1_X1.vs_df, id.vars  = c("method", "var"))
+ggplot(data = Y1_X1.vs.m_1, aes(x=var, y=value,)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + 
+        xlab("Variable") + ylab("# of times var was set to zero")
+
 
 #### Monte Carlo sim Y5 X1####
 
@@ -368,7 +437,7 @@ for (i in 1:length(Y5_X1.betas_qr)){
         Y5_X1.se_gLassoWL[[i]] = t(apply(Y5_X1.betas_gLassoWL[[i]][-1,], 1, function(row) {(row - Y5_X1.betas_gLassoWL[[i]][1,])^2}))
 }
 
-#### MSE ####
+#### Y5X1 MSE ####
 Y5_X1.mse = list()
 for (i in 1:length(Y5_X1.betas_qr)){
         Y5_X1.mse[[i]] = mean(apply(Y5_X1.se_qr[[i]], 2, mean))

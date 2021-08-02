@@ -302,7 +302,7 @@ Z2 = qardl$Z
 
 In Figure \ref{fig:Ycorr2}, the autocorrelation function and the partial autocorrelation function of the process generated with $Y_{t-2}$ and $X_{t-2}$ are illustrated, as well as the correlation between $Y_t$ and $Y_{t-1}$, $Y_t$ and $Y_{t-2}$, $Y_t$ and $X_{t-1}$, and $Y_t$ and $X_{t-2}$.
 
-```{r Ycorr2, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.cap="\\label{fig:Ycorr2}ACF,PACF and correlations of Yt and Xt"}
+```{r Ycorr2, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.pos = 'H', fig.cap="\\label{fig:Ycorr2}ACF,PACF and correlations of Yt and Xt"}
 
 T = length(Y)
 par(mfrow=c(3,2))
@@ -324,7 +324,7 @@ Z1 = qardl$Z
 
 In addition, Figure \ref{fig:Ycorr3} demonstrates the autocorrelation and partial autocorrelation functions of the process generated with $Y_{t-5}$ and $X_{t-1}$, and also the correlation between $Y_t$ and $Y_{t-1}$, $Y_t$ and $Y_{t-5}$, $Y_t$ and $X_{t-1}$, and $Y_t$ and $X_{t-2}$.
 
-```{r Ycorr3, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.cap="\\label{fig:Ycorr3}ACF,PACF and correlations of Yt and Xt"}
+```{r Ycorr3, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.pos = 'H', fig.cap="\\label{fig:Ycorr3}ACF,PACF and correlations of Yt and Xt"}
 
 T = length(Y)
 par(mfrow=c(3,2))
@@ -345,16 +345,26 @@ We observed two aspects: the coefficients estimation and the variable selection.
 
 # Results \label{results}
 
-- Y1 X1
-- Y2 X2
+In the first scenario, where $Yt$ and $Xt$ were generated from $Yt-1$ and $Xt-1$, we observed that the group LASSO approach with WLadaLASSO consistently zeroed the covariates $Y_{t-6}$ to $Y_{t-10}$ and $X_{t-6}$ to $X_{t-10}$ in almost all replications, as observed in figure \ref{fig:Y1X1_vs}. The method also provided better results in removing the lower lag variables that were not relevant and did not exclude the relevant covariates $Y_{t-1}$ and $X_{t-1}$. The methods with the weighted approach performed better in selecting the variables when compared to traditional quantile regression, group LASSO and _piqr_ equivalent.
 
-In the scenario where the data generation process used $X_{t-1}$ and $Y_{t-5}$ as variables to generate $Y_t$ and $X_t$, we observed that the group LASSO approach with WLadaLASSO consistently zeroed the covariates $Y_{t-6}$ to $Y_{t-10}$ and $X_{t-6}$ to $X_{t-10}$ in all replications, as observed in figure \ref{Y5X1_vs}. In addition, the method also provided better in selecting the lower lag variables, with the exception of $Y_{t-1}$, which group LASSO with adaLASSO weights had a small advantage. Furthermore, the method did not set to zero the relevant variables in most of the replications. Both the _piqr_ equivalent and group LASSO methods with the weighted approach performed much better in selecting variables as compared to the others.
+```{r vs_Y1X1, echo=FALSE, warning=F, out.width="70%", fig.pos = 'H', fig.cap="\\label{fig:Y1X1_vs} Number of times each variable was set to zero in scenario 1"}
+knitr::include_graphics('img/Y1X1_vs_table.png')
+```
+
+When observing the coefficient estimation of the relevant variables, the group LASSO method with WLadaLASSO weights does not have significantly higher Mean Squared Error than other approaches, as observed in figure \ref{fig:Y1X1_mse_table}.  
+
+```{r mse_Y1X1_table, echo=FALSE, warning=F, out.width="70%", fig.pos = 'H', fig.cap="\\label{fig:Y1X1_mse_table} MSE table of coefficient estimation"}
+knitr::include_graphics('img/Y1X1_mse_table.png')
+```
+
+
+In the scenario where the data generation process used $X_{t-1}$ and $Y_{t-5}$ as variables to generate $Y_t$ and $X_t$, the results were similar to the first scenario, where we observed that the group LASSO approach performed better in selecting most of the variables that were not relevant to the model, as observed in figure \ref{fig:Y5X1_vs}. The exception is $Y_{t-1}$, which group LASSO with adaLASSO weights had a small advantage. Furthermore, the method did not set to zero the relevant variables in most of the replications. Both the _piqr_ equivalent and group LASSO methods with the weighted approach performed much better in selecting variables as compared to the others.
 
 ```{r vs_Y5X1, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:Y5X1_vs} Number of times each variable was set to zero"}
 knitr::include_graphics('img/vs_Y5X1.png')
 ```
 
-When observing the coefficient estimation of the relevant variables, the group LASSO method with WLadaLASSO weights does not have significantly higher Mean Squared Error than other approaches, as observed in figure \ref{fig:Y5X1_mse_table}.  
+As in scenario one, the coefficient estimation of the relevant variables by the group LASSO method with WLadaLASSO weights was not compromised and had a similar mean squared error as the other methods, as observed in figure \ref{fig:Y5X1_mse_table}.  
 
 ```{r mse_Y5X1_table, echo=FALSE, warning=F, out.width="70%", fig.pos = 'H', fig.cap="\\label{fig:Y5X1_mse_table} MSE table of coefficient estimation"}
 knitr::include_graphics('img/Y5X1_mse_table.png')
