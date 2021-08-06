@@ -587,3 +587,237 @@ ggplot(data = Y5_X1.vs.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method)
 
 
 
+
+
+#### Y10X1 ####
+nrep = 500
+
+tau.grid = seq(from = .1, to=.9, by=.1)
+M = length(tau.grid)
+L = 5
+
+Y10X1.betas_qr = Y10X1.betas_piqr = Y10X1.betas_gLasso = list()
+Y10X1.betas_piqrW = Y10X1.betas_gLassoW = list()
+Y10X1.betas_piqrWL = Y10X1.betas_gLassoWL = list()
+
+for (i in 1:21){
+        Y10X1.betas_qr[[i]] = Y10X1.betas_piqr[[i]] = Y10X1.betas_gLasso[[i]] = 
+                Y10X1.betas_piqrW[[i]] = Y10X1.betas_gLassoW[[i]] = Y10X1.betas_piqrWL[[i]] = Y10X1.betas_gLassoWL[[i]] = rep(0,M)
+}
+
+Y10X1.betas_qr[[1]] = Y10X1.betas_piqr[[1]] = Y10X1.betas_gLasso[[1]] = alpha0(tau.grid)
+Y10X1.betas_piqrW[[1]] = Y10X1.betas_gLassoW[[1]] = alpha0(tau.grid)
+Y10X1.betas_piqrWL[[1]] = Y10X1.betas_gLassoWL[[1]] = alpha0(tau.grid)
+Y10X1.betas_qr[[20]] = Y10X1.betas_piqr[[20]] = Y10X1.betas_gLasso[[20]] = alpha1(tau.grid)
+Y10X1.betas_piqrW[[20]] = Y10X1.betas_gLassoW[[20]] = alpha1(tau.grid)
+Y10X1.betas_piqrWL[[20]] = Y10X1.betas_gLassoWL[[20]] = alpha1(tau.grid)
+Y10X1.betas_qr[[3]] = Y10X1.betas_piqr[[3]] = Y10X1.betas_gLasso[[3]] = theta1(tau.grid)
+Y10X1.betas_piqrW[[3]] = Y10X1.betas_gLassoW[[3]] = theta1(tau.grid)
+Y10X1.betas_piqrWL[[3]] = Y10X1.betas_gLassoWL[[3]] = theta1(tau.grid)
+
+set.seed(205650)
+for (i in 1:nrep) {
+        Y10X1 = simulate_qardl(N=500, Ylag = 10, Xlag = 1)
+        
+        Y10X1.Y = Y10X1$Y
+        Y10X1.Z = Y10X1$Z
+        
+        Y10X1.N = length(Y10X1.Y)
+        
+        Y10X1.Yvec = Y10X1.Y[11:Y10X1.N]
+        Y10X1.Xmat = cbind(Y10X1.Y[1:(Y10X1.N - 1)], Y10X1.Z[1:(Y10X1.N - 1)])
+        for (i in 2:10){
+                Y10X1.Xmat = cbind(Y10X1.Xmat, c(NA, Y10X1.Y[1:(Y10X1.N - i)]), c(NA, Y10X1.Z[1:(Y10X1.N -i)]))[-1, ] 
+        }
+        colnames(Y10X1.Xmat) = c("Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                                 "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                                 "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+        
+        M = length(tau.grid)
+        
+        qrfit = rq(Y10X1.Yvec ~ Y10X1.Xmat, tau = tau.grid)
+        qrfit_coefs = coef(qrfit)
+        
+        # global coefficients proposed
+        phi = phi_generator(L, tau.grid)
+        Y10X1.Xmat1 = cbind(rep(1, nrow(Y10X1.Xmat)), Y10X1.Xmat)
+        
+        piqr = global_qr(taus = tau.grid, phi = phi, X = Y10X1.Xmat1, y = Y10X1.Yvec, lambda = 1, lags = 0, f = "piqr", w = F)
+        piqr_coefs = piqr$bhat
+        
+        piqrW = global_qr(taus = tau.grid, phi = phi, X = Y10X1.Xmat1, y = Y10X1.Yvec, lambda = 1, lags = 0, f = "piqr", w = T)
+        piqrW_coefs = piqrW$bhat
+        
+        piqrWL = global_qr(taus = tau.grid, phi = phi, X = Y10X1.Xmat1, y = Y10X1.Yvec, lambda = 1, lags = 10, f = "piqr", w = T)
+        piqrWL_coefs = piqrWL$bhat
+        
+        gLasso = global_qr(taus = tau.grid, phi = phi, X = Y10X1.Xmat1, y = Y10X1.Yvec, lambda = 1, lags = 0, f = "gLasso", w = F)
+        gLasso_coefs = gLasso$bhat
+        
+        gLassoW = global_qr(taus = tau.grid, phi = phi, X = Y10X1.Xmat1, y = Y10X1.Yvec, lambda = 1, lags = 0, f = "gLasso", w = T)
+        gLassoW_coefs = gLassoW$bhat
+        
+        gLassoWL = global_qr(taus = tau.grid, phi = phi, X = Y10X1.Xmat1, y = Y10X1.Yvec, lambda = 1, lags = 10, f = "gLasso", w = T)
+        gLassoWL_coefs = gLassoWL$bhat
+        
+        if(typeof(piqr_coefs) == "character" | typeof(piqrW_coefs) == "character" | typeof(piqrWL_coefs) == "character" | 
+           typeof(gLasso_coefs) == "character" | typeof(gLassoW_coefs) == "character" | typeof(gLassoWL_coefs) == "character") next
+        
+        
+        for(i in 1:nrow(gLasso_coefs)){
+                
+                Y10X1.betas_qr[[i]] = rbind(Y10X1.betas_qr[[i]], qrfit_coefs[i,])
+                Y10X1.betas_piqr[[i]] = rbind(Y10X1.betas_piqr[[i]], piqr_coefs[i,])
+                Y10X1.betas_piqrW[[i]] = rbind(Y10X1.betas_piqrW[[i]], piqrW_coefs[i,])
+                Y10X1.betas_piqrWL[[i]] = rbind(Y10X1.betas_piqrWL[[i]], piqrWL_coefs[i,])
+                Y10X1.betas_gLasso[[i]] = rbind(Y10X1.betas_gLasso[[i]], gLasso_coefs[i,])
+                Y10X1.betas_gLassoW[[i]] = rbind(Y10X1.betas_gLassoW[[i]], gLassoW_coefs[i,])
+                Y10X1.betas_gLassoWL[[i]] = rbind(Y10X1.betas_gLassoWL[[i]], gLassoWL_coefs[i,])
+        }
+}
+
+#### SE ####
+## difference of estimated coefficients with real ones for each row (nrep) ## 
+Y10X1.se_qr = list()
+Y10X1.se_piqr = list()
+Y10X1.se_piqrW = list()
+Y10X1.se_piqrWL = list()
+Y10X1.se_gLasso = list()
+Y10X1.se_gLassoW = list()
+Y10X1.se_gLassoWL = list()
+
+
+for (i in 1:length(Y10X1.betas_qr)){
+        Y10X1.se_qr[[i]] = t(apply(Y10X1.betas_qr[[i]][-1,], 1, function(row) {(row - Y10X1.betas_qr[[i]][1,])^2}))
+        Y10X1.se_piqr[[i]] = t(apply(Y10X1.betas_piqr[[i]][-1,], 1, function(row) {(row - Y10X1.betas_piqr[[i]][1,])^2}))
+        Y10X1.se_piqrW[[i]] = t(apply(Y10X1.betas_piqrW[[i]][-1,], 1, function(row) {(row - Y10X1.betas_piqrW[[i]][1,])^2}))
+        Y10X1.se_piqrWL[[i]] = t(apply(Y10X1.betas_piqrWL[[i]][-1,], 1, function(row) {(row - Y10X1.betas_piqrWL[[i]][1,])^2}))
+        Y10X1.se_gLasso[[i]] = t(apply(Y10X1.betas_gLasso[[i]][-1,], 1, function(row) {(row - Y10X1.betas_gLasso[[i]][1,])^2}))
+        Y10X1.se_gLassoW[[i]] = t(apply(Y10X1.betas_gLassoW[[i]][-1,], 1, function(row) {(row - Y10X1.betas_gLassoW[[i]][1,])^2}))
+        Y10X1.se_gLassoWL[[i]] = t(apply(Y10X1.betas_gLassoWL[[i]][-1,], 1, function(row) {(row - Y10X1.betas_gLassoWL[[i]][1,])^2}))
+}
+
+#### Y10X1 MSE ####
+Y10X1.mse = list()
+for (i in 1:length(Y10X1.betas_qr)){
+        Y10X1.mse[[i]] = mean(apply(Y10X1.se_qr[[i]], 2, mean))
+        Y10X1.mse[[i]] = c(Y10X1.mse[[i]], mean(apply(Y10X1.se_piqr[[i]], 2, mean)))
+        Y10X1.mse[[i]] = c(Y10X1.mse[[i]], mean(apply(Y10X1.se_piqrW[[i]], 2, mean)))
+        Y10X1.mse[[i]] = c(Y10X1.mse[[i]], mean(apply(Y10X1.se_piqrWL[[i]], 2, mean)))
+        Y10X1.mse[[i]] = c(Y10X1.mse[[i]], mean(apply(Y10X1.se_gLasso[[i]], 2, mean)))
+        Y10X1.mse[[i]] = c(Y10X1.mse[[i]], mean(apply(Y10X1.se_gLassoW[[i]], 2, mean)))
+        Y10X1.mse[[i]] = c(Y10X1.mse[[i]], mean(apply(Y10X1.se_gLassoWL[[i]], 2, mean)))
+        names(Y10X1.mse[[i]]) = c("QR","piqr","piqrW","piqrWL","gLasso","gLassoW","gLassoWL")
+}
+
+Y10X1.mse.table = as.data.frame(do.call(rbind, Y10X1.mse))
+rownames(Y10X1.mse.table) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                              "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                              "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+Y10X1.mse.table.rel = Y10X1.mse.table[c(1,3,20),]
+
+png("img/Y10X1_mse_table.png", width=350,height=200,bg = "white")
+grid.table(format(t(Y10X1.mse.table.rel), scientific = T))
+dev.off()
+
+Y10X1.mse_df = data.frame("mse" = Y10X1.mse[[1]], "var" = rep(1, 7), "method" = c(1,2,3,4,5,6,7))
+for (i in c(3,20)){
+        Y10X1.mse_df = rbind(Y10X1.mse_df, data.frame("mse" = Y10X1.mse[[i]], "var" = rep(i, 7), "method"= c(1,2,3,4,5,6,7)))
+}
+
+Y10X1.mse_df$method = as.factor(Y10X1.mse_df$method)
+Y10X1.mse_df$var = as.factor(Y10X1.mse_df$var)
+levels(Y10X1.mse_df$method) = c("QR", "piqr", "piqrW", "piqrWL", "gLasso", "gLassoW", "gLassoWL")
+levels(Y10X1.mse_df$var) = c("c", "Xt-1", "Yt-10")
+
+library(reshape2)
+Y10X1.mse.m_1 <- melt(Y10X1.mse_df, id.vars  = c("method", "var"))
+ggplot(data = Y10X1.mse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("MSE")
+
+
+#### SSE ####
+Y10X1.sse = list()
+for (i in 1:length(Y10X1.betas_qr)){
+        Y10X1.sse[[i]] = apply(Y10X1.se_qr[[i]], 2, mean)
+        Y10X1.sse[[i]] = rbind(Y10X1.sse[[i]], apply(Y10X1.se_piqr[[i]], 2, sum))
+        Y10X1.sse[[i]] = rbind(Y10X1.sse[[i]], apply(Y10X1.se_piqrW[[i]], 2, sum))
+        Y10X1.sse[[i]] = rbind(Y10X1.sse[[i]], apply(Y10X1.se_piqrWL[[i]], 2, sum))
+        Y10X1.sse[[i]] = rbind(Y10X1.sse[[i]], apply(Y10X1.se_gLasso[[i]], 2, sum))
+        Y10X1.sse[[i]] = rbind(Y10X1.sse[[i]], apply(Y10X1.se_gLassoW[[i]], 2, sum))
+        Y10X1.sse[[i]] = rbind(Y10X1.sse[[i]], apply(Y10X1.se_gLassoW[[i]], 2, sum))
+}
+
+Y10X1.sse_taus_df <- lapply(seq_along(Y10X1.sse), function(i) {
+        df = data.frame(Y10X1.sse[[i]])
+        df$var = rep(i, nrow(Y10X1.sse[[i]]))
+        df$method = c(1,2,3,4,5,6,7)
+        return(df)
+})
+
+Y10X1.sse_taus_df$method = as.factor(Y10X1.sse_taus_df$method)
+Y10X1.sse_taus_df$var = as.factor(Y10X1.sse_taus_df$var)
+
+Y10X1.sse_df = data.frame("mse" = apply(Y10X1.sse[[1]], 1, sum), "var" = rep(1, 7), "method" = c(1,2,3,4,5,6,7))
+for (i in 2:length(Y10X1.sse)){
+        Y10X1.sse_df = rbind(Y10X1.sse_df, data.frame("mse" = apply(Y10X1.sse[[i]], 1, sum), "var" = rep(i, 7), "method"= c(1,2,3,4,5,6,7)))
+}
+
+Y10X1.sse_df$method = as.factor(Y10X1.sse_df$method)
+Y10X1.sse_df$var = as.factor(Y10X1.sse_df$var)
+levels(Y10X1.sse_df$method) = c("QR", "piqr", "piqrW", "piqrWL", "gLasso", "gLassoW", "gLassoWL")
+levels(Y10X1.sse_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                             "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                             "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+
+library(reshape2)
+Y10X1.sse.m_1 <- melt(Y10X1.sse_df, id.vars  = c("method", "var"))
+ggplot(data = Y10X1.sse.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("SSE")
+
+#### Variable Selection ####
+
+Y10X1.vs = list(length(Y10X1.betas_qr))
+
+for (i in 1:length(Y10X1.betas_qr)){
+        Y10X1.vs[[i]] = ifelse(is.null(nrow(Y10X1.betas_qr[[i]][rowSums(Y10X1.betas_qr[[i]]) == 0,])), 0, nrow(Y10X1.betas_qr[[i]][rowSums(Y10X1.betas_qr[[i]]) == 0,])) 
+        Y10X1.vs[[i]] = c(Y10X1.vs[[i]], ifelse(is.null(nrow(Y10X1.betas_piqr[[i]][rowSums(Y10X1.betas_piqr[[i]]) == 0,])), 0, nrow(Y10X1.betas_piqr[[i]][rowSums(Y10X1.betas_piqr[[i]]) == 0,])))
+        Y10X1.vs[[i]] = c(Y10X1.vs[[i]], ifelse(is.null(nrow(Y10X1.betas_piqrW[[i]][rowSums(Y10X1.betas_piqrW[[i]]) == 0,])), 0, nrow(Y10X1.betas_piqrW[[i]][rowSums(Y10X1.betas_piqrW[[i]]) == 0,])))
+        Y10X1.vs[[i]] = c(Y10X1.vs[[i]], ifelse(is.null(nrow(Y10X1.betas_piqrWL[[i]][rowSums(Y10X1.betas_piqrWL[[i]]) == 0,])), 0, nrow(Y10X1.betas_piqrWL[[i]][rowSums(Y10X1.betas_piqrWL[[i]]) == 0,])))
+        Y10X1.vs[[i]] = c(Y10X1.vs[[i]], ifelse(is.null(nrow(Y10X1.betas_gLasso[[i]][rowSums(Y10X1.betas_gLasso[[i]]) == 0,])), 0, nrow(Y10X1.betas_gLasso[[i]][rowSums(Y10X1.betas_gLasso[[i]]) == 0,])))
+        Y10X1.vs[[i]] = c(Y10X1.vs[[i]], ifelse(is.null(nrow(Y10X1.betas_gLassoW[[i]][rowSums(Y10X1.betas_gLassoW[[i]]) == 0,])), 0, nrow(Y10X1.betas_gLassoW[[i]][rowSums(Y10X1.betas_gLassoW[[i]]) == 0,])))
+        Y10X1.vs[[i]] = c(Y10X1.vs[[i]], ifelse(is.null(nrow(Y10X1.betas_gLassoWL[[i]][rowSums(Y10X1.betas_gLassoWL[[i]]) == 0,])), 0, nrow(Y10X1.betas_gLassoWL[[i]][rowSums(Y10X1.betas_gLassoWL[[i]]) == 0,])))
+        names(Y10X1.vs[[i]]) = c("QR","piqr","piqrW","piqrWL","gLasso","gLassoW","gLassoWL")
+}
+
+Y10X1.vs.table = as.data.frame(do.call(rbind, Y10X1.vs))
+rownames(Y10X1.vs.table) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                             "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                             "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+library(gridExtra)
+
+png("Y10X1_vs_table.png", width=480,height=480,bg = "white")
+grid.table(Y10X1.vs.table)
+dev.off()
+
+Y10X1.vs_df$method = as.factor(Y10X1.vs_df$method)
+Y10X1.vs_df$var = as.factor(Y10X1.vs_df$var)
+levels(Y10X1.vs_df$method) = c("QR", "piqr", "piqrW", "piqrWL", "gLasso", "gLassoW", "gLassoWL")
+levels(Y10X1.vs_df$var) = c("c", "Yt-1", "Xt-1", "Yt-2", "Xt-2", "Yt-3", "Xt-3", 
+                            "Yt-4", "Xt-4", "Yt-5", "Xt-5", "Yt-6", "Xt-6", 
+                            "Yt-7", "Xt-7", "Yt-8", "Xt-8", "Yt-9", "Xt-9", "Yt-10", "Xt-10")
+
+library(reshape2)
+Y10X1.vs.m_1 <- melt(Y10X1.vs_df, id.vars  = c("method", "var"))
+ggplot(data = Y10X1.vs.m_1, aes(x=var, y=value)) + geom_point(aes(colour=method), position=position_jitter(w=0.02)) + xlab("Variable") + ylab("# of times var was set to zero")
+
+
+
+
+
+
+
+
+
+
+
+
+
