@@ -12,7 +12,7 @@ affiliation:
     authorsLabels: e1
 abstract: |
   Quantile regression models the conditional distribution of a response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels offering a description for the whole conditional distribution (@Koenker2006). Using quantile regression, as opposed to traditional linear regression, provides several advantages, but can add complexity to certain operations. For example, when performing variable selection, there might be a different set of variables selected for each quantile. @Frumento2016 propose a parametric modeling of quantile regression coefficient functions that allows us to estimate in one single minimization problem the coefficients for all quantiles in a grid. @Sottile2020 use this approach to perform LASSO variable selection using information on all quantiles simultaneously.
-  In this work, we propose a global variable selection and coefficient estimation method based on the estimator presented in @Sottile2020, introducing the group LASSO penalty, suggested in @Yuan2006, and applied in a Quantile Autoregressive Distributed Lag (QADL) model. Furthermore, since we are in a time series context, we also evaluate the variable selection penalization applying higher penalties to higher lags, as proposed in @Konzen2016. The results suggest that a weighted penalized approach considering the lags can provide better results in selecting the variables without compromising the estimation of the coefficients. In particular, both LASSO and group LASSO penalization with higher weights for higher lags were the ones that removed the non-relevant variables more often. 
+  In this work, we propose a global variable selection and coefficient estimation method based on the estimator presented in @Sottile2020, introducing the group LASSO penalty, suggested in @Yuan2006, and applied in a Quantile Autoregressive Distributed Lag (QADL) model. Furthermore, since we are in a time series context, we also evaluate the variable selection penalization applying higher penalties to higher lags, as proposed in @Konzen2016. The results suggest that a weighted penalized approach considering the lags can provide better results in selecting the variables in models where the relevant covariates are up to five lags, without compromising the estimation of the coefficients. In particular, both LASSO and group LASSO penalization with higher weights for higher lags were the ones that removed the non-relevant variables more often in these scenarios. 
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -41,7 +41,15 @@ header-includes:
   - \DeclareMathOperator{\R}{\mathbb{R}}
   - \DeclareMathOperator*{\argmax}{arg\,max}
   - \usepackage{float}
+  - \usepackage{placeins}
+
 ---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::knit_hooks$set(plot = function(x, options)  {
+  paste0(knitr::hook_plot_tex(x, options), "\n\\FloatBarrier\n")
+})
+```
 
 # Introduction
 
@@ -300,9 +308,7 @@ Y5 = qardl$Y
 Z1 = qardl$Z
 ```
 
-In Figure \ref{fig:Ycorr2}, the autocorrelation and partial autocorrelation functions of the process generated with $Y_{t-5}$ and $X_{t-1}$ are illustrated, and also the correlation between $Y_t$ and $Y_{t-1}$, $Y_t$ and $Y_{t-5}$, $Y_t$ and $X_{t-1}$, and $Y_t$ and $X_{t-2}$.
-
-```{r Ycorr2, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.pos = 'H', fig.cap="\\label{fig:Ycorr2}ACF,PACF and correlations of Yt and Xt"}
+```{r Ycorr2, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.pos = 'H', fig.cap="\\label{fig:Ycorr2}ACF,PACF and correlations of $Y_t$ and $X_t$ in scenario 2"}
 
 T = length(Y)
 par(mfrow=c(3,2))
@@ -322,9 +328,9 @@ Y10 = qardl$Y
 Z2 = qardl$Z
 ```
 
-In addition, Figure \ref{fig:Ycorr3} demonstrates the autocorrelation function and the partial autocorrelation function of the process generated with $Y_{t-10}$ and $X_{t-1}$, as well as the correlation between $Y_t$ and $Y_{t-1}$, $Y_t$ and $Y_{t-10}$, $Y_t$ and $Y_{t-5}$, $Y_t$ and $X_{t-1}$.
+In Figure \ref{fig:Ycorr2}, the autocorrelation and partial autocorrelation functions of the process generated with $Y_{t-5}$ and $X_{t-1}$ are illustrated, and also the correlation between $Y_t$ and $Y_{t-1}$, $Y_t$ and $Y_{t-5}$, $Y_t$ and $X_{t-1}$, and $Y_t$ and $X_{t-2}$. In addition, Figure \ref{fig:Ycorr3} demonstrates the autocorrelation function and the partial autocorrelation function of the process generated with $Y_{t-10}$ and $X_{t-1}$, as well as the correlation between $Y_t$ and $Y_{t-1}$, $Y_t$ and $Y_{t-10}$, $Y_t$ and $Y_{t-5}$, $Y_t$ and $X_{t-1}$.
 
-```{r Ycorr2, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.pos = 'H', fig.cap="\\label{fig:Ycorr2}ACF,PACF and correlations of $Y_t$ and $X_t$"}
+```{r Ycorr3, echo=FALSE, warning=F, fig.width=7,fig.height=6, fig.pos = 'H', fig.cap="\\label{fig:Ycorr3}ACF,PACF and correlations of $Y_t$ and $X_t$ in scenario 3"}
 
 T = length(Y)
 par(mfrow=c(3,2))
@@ -341,17 +347,17 @@ Since the goal of this work is to compare the variable selection methods, we fix
 
 Monte Carlo experiments comparing the 7 different methods for coefficient estimation and variable selection were performed for each generated process. The dataset used for validation was created with the first column set to one and 10 lags of each covariate generated resulting in 21 columns, including the intercept.
 
-We observed two aspects: the variable selection and the coefficients estimation. The number of times the non-relevant covariates were set to zero was used to analyze the effectivity in selecting variables. The metric used to evaluate the estimation of the relevant variables was Mean Squared Error (MSE) by coefficient. 
+We observed two aspects: the variable selection and the coefficients estimation. The number of times the non-relevant covariates were set to zero was used to analyze the effectivity in selecting variables. The metric used to evaluate the estimation of the relevant variables was mean squared error (MSE) by coefficient. 
 
 # Results \label{results}
 
-In the first scenario, where $Yt$ and $Xt$ were generated from $Yt-1$ and $Xt-1$, we observed that the group LASSO approach with WLadaLASSO consistently zeroed the covariates $Y_{t-6}$ to $Y_{t-10}$ and $X_{t-6}$ to $X_{t-10}$ in almost all replications, as observed in figure \ref{fig:Y1X1_vs}. The method also provided better results in removing the lower lag variables that were not relevant and did not exclude the relevant covariates $Y_{t-1}$ and $X_{t-1}$. The methods with the weighted approach performed better in selecting the variables when compared to traditional quantile regression, group LASSO and _piqr_ equivalent.
+In the first scenario, where $Y_t$ and $X_t$ were generated from $Y_{t-1}$ and $X_{t-1}$, we observed that the group LASSO approach with WLadaLASSO consistently zeroed the covariates $Y_{t-6}$ to $Y_{t-10}$ and $X_{t-6}$ to $X_{t-10}$ in almost all replications, as observed in figure \ref{fig:Y1X1_vs}. The method also provided better results in removing the lower lag variables that were not relevant and did not exclude the relevant covariates $Y_{t-1}$ and $X_{t-1}$. The methods with the weighted approach performed better in selecting the variables when compared to traditional quantile regression, group LASSO and _piqr_ equivalent.
 
 ```{r vs_Y1X1, echo=FALSE, warning=F, out.width="70%", fig.pos = 'H', fig.cap="\\label{fig:Y1X1_vs} Number of times each variable was set to zero in scenario 1"}
 knitr::include_graphics('img/Y1X1_vs_table.png')
 ```
 
-When observing the coefficient estimation of the relevant variables, the group LASSO method with WLadaLASSO weights does not have significantly higher Mean Squared Error than other approaches, as observed in figure \ref{fig:Y1X1_mse_table}.  
+When observing the coefficient estimation of the relevant variables, the group LASSO method with WLadaLASSO weights does not have significantly higher mean squared error than other approaches, as observed in figure \ref{fig:Y1X1_mse_table}.  
 
 ```{r mse_Y1X1_table, echo=FALSE, warning=F, out.width="70%", fig.pos = 'H', fig.cap="\\label{fig:Y1X1_mse_table} MSE table of coefficient estimation in scenario 1"}
 knitr::include_graphics('img/Y1X1_mse_table.png')
@@ -370,9 +376,22 @@ As in scenario one, the coefficient estimation of the relevant variables by the 
 knitr::include_graphics('img/Y5X1_mse_table.png')
 ```
 
+The scenario 3, which had the $Y_t$ and $X_t$ variables generated using $Y_{t-10}$ and $X_{t-1}$, presented less expressive results than the former two. Figure \ref{fig:Y10X1_vs} illustrate that both methods with the WLadaLASSO penalization removed the relevant variable $Y_{t-10}$ between 150 and 200 times. We can also observe in figure \ref{fig:Y10X1_mse_table} that this resulted in a higher MSE when estimating the coefficient for the $Y_{t-10}$ variable. 
+
+```{r vs_Y10X1, echo=FALSE, warning=F, out.width="90%", fig.pos = 'H', fig.cap="\\label{fig:Y10X1_vs} Number of times each variable was set to zero in scenario 3"}
+knitr::include_graphics('img/vs_Y10X1.png')
+```
+
+```{r mse_Y10X1_table, echo=FALSE, warning=F, out.width="70%", fig.pos = 'H', fig.cap="\\label{fig:Y10X1_mse_table} MSE table of coefficient estimation in scenario 3"}
+knitr::include_graphics('img/Y10X1_mse_table.png')
+```
+
+
+
+
 # Final discussions and future work \label{conclusion}
 
-@Frumento2016 and @Sottile2020 introduced an important solution to the complexity of variable selection in quantile regression modeling. In this work, it was proposed to evaluate increments in the LASSO penalization, considering the context of the data and incorporating the group LASSO and WLadaALASSO penalization to the method. The results suggest that a weighted penalized approach considering the lag order can provide better results in selecting the variables while not compromising the estimation of the coefficients for relevant variables. In particular, both LASSO and group LASSO penalization with higher weights for higher lags combinations had a significantly better performance in setting the zero coefficients correctly and had a similar mean squared error to estimate the coefficients when compared to the other methods. Methods that used penalization without weights didn't do variable selection and considered all the covariates to the model. It is worth highlighting that the $\lambda$ parameter was fixed in all scenarios, which may have affected the results in certain cases. 
+@Frumento2016 and @Sottile2020 introduced an important solution to the complexity of variable selection in quantile regression modeling. In this work, it was proposed to evaluate increments in the LASSO penalization, considering the context of the data and incorporating the group LASSO and WLadaALASSO penalization to the method. The results suggest that a weighted penalized approach considering the lag order can provide better results in selecting the variables while not compromising the estimation of the coefficients in models where the relevant covariates are up to five lags. In particular, both LASSO and group LASSO penalization with higher weights for higher lags combinations had a significantly better performance in setting the zero coefficients correctly in these scenarios and had a similar mean squared error to estimate the coefficients when compared to the other methods. When applying the method to a model generated using ten lags of the variable, the results are less expressive, where the proposed method can wrongfully remove a relevant variable that has a higher lag, resulting in a higher MSE when estimating its coefficient. This is somehow expected, as the weighted lag approach has the premise that higher lags are less relevant. Even  in scenarios 2 and 3 where this assumption does not hold, the proposal did not remove the $Y_{t-5}$ variable and kept the $Y_{t-10}$ variable in more than half of the replications. Methods that used penalization without weights didn't do variable selection and considered all the covariates to the model. It is worth highlighting that the $\lambda$ parameter was fixed in all scenarios, which may have affected the results in certain cases. 
 
 In this work, the aim was to compare the proposed additions to @Sottile2020 framework and traditional quantile regression for variable selection. For further studies, it is interesting to find the optimal $\lambda$ for each method before comparing the results, along with evaluate different parametrization to the proposed one, finding the optimal $\lambda$, $p$, $\alpha$, and minimum $\tau$-grid. Furthermore, different QADL data generation processes should be explored, such as scenarios with different generating functions, as well as varying the testing database size. Also, it is valid to apply the methods in real data scenarios.
 
