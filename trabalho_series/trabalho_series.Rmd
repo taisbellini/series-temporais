@@ -11,8 +11,8 @@ affiliation:
     name: Instituto de Matemática e Estatística, Universidade Federal do Rio Grande do Sul
     authorsLabels: e1
 abstract: |
-  Quantile regression models the conditional distribution of a response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels offering a description for the whole conditional distribution (@Koenker2006). Using quantile regression, as opposed to traditional linear regression, provides several advantages, but can add complexity to certain operations. For example, when performing variable selection, there might be a different set of variables selected for each quantile. @Frumento2016 propose a parametric modeling of quantile regression coefficient functions that allows us to estimate in one single minimization problem the coefficients for all quantiles in a grid. @Sottile2020 use this approach to perform LASSO variable selection using information on all quantiles simultaneously.
-  In this work, we propose a global variable selection and coefficient estimation method based on the estimator presented in @Sottile2020, introducing the group LASSO penalty, suggested in @Yuan2006, and applied in a Quantile Autoregressive Distributed Lag (QADL) model. Furthermore, since we are in a time series context, we also evaluate the variable selection penalization applying higher penalties to higher lags, as proposed in @Konzen2016. The results suggest that a weighted penalized approach considering the lags can provide better results in selecting the variables in models where the relevant covariates are up to five lags, without compromising the estimation of the coefficients. In particular, both LASSO and group LASSO penalization with higher weights for higher lags were the ones that removed the non-relevant variables more often in these scenarios. 
+  Quantile regression models the conditional distribution of a response variable $Y$ given a vector of covariates $\boldsymbol{X}$ at different quantile levels, offering a parsimonious specification for the whole conditional distribution (@Koenker2006). Using quantile regression, as opposed to traditional regression models, provides several advantages, but can add complexity to certain operations. For example, when performing variable selection, there might be a different set of variables selected for each quantile. @Frumento2016 propose a parametric modeling of quantile regression coefficient functions that allows one to estimate, in a single minimization problem, the coefficients for all quantile levels in a given grid. @Sottile2020 use this approach to perform LASSO variable selection using information on all quantile levels simultaneously.
+  In this work, we propose a method for global variable selection and coefficient estimation, similarly to the approach presented in @Sottile2020. We introduce group (ada)LASSO penalty, suggested in @Yuan2006, and apply it to Quantile Autoregressive Distributed Lag (QADL) model. Furthermore, since we are in a time series context, we also evaluate the variable selection penalization applying higher penalties to higher lags, as introduced by @Konzen2016. The results suggest that a weighted, lag-penalized approach can provide better results in selecting covariates in models with up to five relevant lags of the regressors, without compromising the estimation of the coefficients. In particular, both LASSO and group LASSO penalization with higher weights for higher lags removed the non-relevant variables more often than the competitors in these scenarios.
 keyword-subclass: | 
  \begin{keyword}[class=MSC2020] % It must be define for aap, aop, aos journals. For aoas, sts is not used
  \kwd[Primary ]{00X00}
@@ -53,84 +53,75 @@ knitr::knit_hooks$set(plot = function(x, options)  {
 
 # Introduction
 
-Quantile regression, introduced in @Koenker1978, provides a model for the conditional distribution of the response variable $Y$ on the vector of covariates $\mathbf{X}$ at different quantile levels, denoted here as $\tau\in(0,1)$, thus, offering a description for the whole conditional distribution. It offers a more robust estimation for outliers, as opposed to classical linear regression that only evaluates the conditional mean at a specific location. [@Davino2014] In @Koenker2005, the Quantile Autoregressive (QAR) model is introduced, where the $\tau$-th conditional quantile function of the response variable $Y_t$ is expressed as a linear function of the lagged values of $Y$ and all the autoregressive coefficients can depend on $\tau$. Quantile regression estimation for other traditional time series models are described in @Koenker2018, such as ARMA and ADL models. @Galvao2013 generalize the QAR model to a framework that introduces exogenous stationary covariates, the Quantile Autoregressive Distributed Lag (QADL) model, demonstrating it can deliver good insights on asymmetric dynamics.
+Quantile regression, brought to light in its modern guise by @Koenker1978, provides a model for the conditional quantile of the response variable $Y$ given the vector of covariates $\boldsymbol{X}$, at different quantile levels, denoted here as $\tau\in(0,1)$. Thus, it offers a parsimonious description for the whole conditional distribution of the response. Importantly, quantile regression also yield estimators that are more robust to the presence of outliers, as opposed to classical linear regression methods that only evaluate the conditional mean at a specific location [@Davino2014]. In a time series context, @Koenker2005 introduces the Quantile Autoregressive (QAR) model, where the $\tau$-th conditional quantile of the response variable $Y_t$ is expressed as an affine function of the lagged values of $Y$, and all the autoregressive coefficients can depend on $\tau$. Quantile regression methods for other traditional time series models, such as ARMA and ADL models, are described in @Koenker2018. @Galvao2013 generalize the QAR model to a framework that includes exogenous stationary covariates, the Quantile Autoregressive Distributed Lag (QADL) model, demonstrating it can deliver good insights on asymmetric dynamics.
 
-In quantile regression, we get the conditional quantile function for a determined $\tau$. Therefore, for each desired quantile, there will be a regression model and estimation. This brings complexity to certain operations, since we will have $M$ different estimations, where $M$ is the number of quantiles we wish to evaluate. For example, if we want to perform variable selection using regularization techniques, such as LASSO or adaptive LASSO, we might have different variables selected for each $\tau$. @Frumento2016 proposes an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s in one single minimization problem. Adding to this approach, it is possible to perform a global selection of variables for a grid of quantiles. @Sottile2020 study global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating being able to efficiently approximate the true model with high probability. 
+Quantile regression models are customarily presented by specifying, for each quantile level $\tau$, the functional form for the conditional $\tau$th quantile of the response. Therefore, for each desired quantile level, there corresponds one regression equation and, with regards to estimation, one optimization procedure. This brings complexity to certain operations, since we will have $M$ different estimations, where $M$ is the cardinality of the set $\mathcal{T}$ of quantile levels we wish to evaluate. One scenario where this may raise difficulties occurs when we desire to perform variable selection using regularization techniques, such as LASSO or adaptive LASSO, as we might obtain a different set of selected variables for each quantile level. @Frumento2016 propose an approach for quantile regression that estimates the coefficients for a given grid of $\tau$'s through a single minimization problem. Adding to this approach, it is possible to perform global selection of variables for a grid of quantile levels. @Sottile2020 study global coefficient estimation and variable selection in cross-sectional data using LASSO, demonstrating its ability to efficiently approximate the true model with a high probability. 
 
-In this work, we propose a global variable selection and coefficient estimation method based on the estimator presented in @Sottile2020. The proposal introduces the group LASSO penalty, suggested in @Yuan2006, and is applied in a Quantile Autoregressive Distributed Lag (QADL) model. Furthermore, since we are in a time series context, the variable selection penalization applies higher penalties to higher lags, as proposed in @Konzen2016. The paper is organized as follows: Chapter \ref{fundamentals} describes the main concepts used in this work and the proposed estimator, Chapter \ref{methodology} explains how the QADL process was generated and how the simulation process was setup, Chapter \ref{results} analyses the results of the simulation and comparison with other methods, and Chapter \ref{conclusion} provides a final discussion enlightening future work.
+In this work, we propose a method for global variable selection and coefficient estimation, similarly to (and partially inspired by) the ideas put forth by @Sottile2020, in a time series framework. Our proposal introduces the group (ada)LASSO penalty [@Yuan2006], and we apply it to Quantile Autoregressive Distributed Lag (QADL) models [@Galvao2013]. Furthermore, since we are considering a time series context, our variable selection method applies higher penalties to higher lags, as proposed by @Konzen2016. The paper is organized as follows: Chapter \ref{fundamentals} describes the main concepts used in this work and the proposed estimator; Chapter \ref{methodology} explains how the QADL process was generated and how the simulation process was set up; Chapter \ref{results} analyses the results of the simulation and comparison with other methods, and Chapter \ref{conclusion} provides a final discussion enlightening future work.
 
 # Fundamentals \label{fundamentals}
 
-In this section, the fundamental concepts used in this work are presented. We start defining the Quantile Autoregressive Distributed Lag Model, describe the proposed estimator and express the variable selection method.
+In this section, the fundamental concepts used in this work are presented. We start by defining the Quantile Autoregressive Distributed Lag Model, then we describe the proposed estimator and corresponding variable selection method.
 
 ## Quantile Autoregressive Distributed Lag Model (QADL)
 
-Consider an Autoregressive Distributed Lag model described by the equation:
+Consider a classic Autoregressive Distributed Lag model described by the stochastic difference equations:
 \begin{equation}
-Y_t = \alpha_0 + \alpha_1Y_{t-1} +  \cdots + \alpha_pY_{t-p} + \theta_1\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q\mathbf{X}_{t-q}^\intercal + \varepsilon_t 
+Y_t = \alpha_0 + \alpha_1Y_{t-1} +  \cdots + \alpha_pY_{t-p} + \theta_1\boldsymbol{X}_{t-1}^\intercal + \cdots + \theta_q\boldsymbol{X}_{t-q}^\intercal + \varepsilon_t,\qquad t\in\mathbb{Z},
 \label{eq:adl}
 \end{equation}
-where $t = 1, ..., T$, $Y_t$ is the response variable, $Y_{t-j}$ the lag of the response variable and $\mathbf{X}_{t-q}$ is the lagged covariates vector with dimension $D$. $\varepsilon_t$ is a white noise.
+where $Y_t$ is the response variable, $Y_{t-j}$ the lag of the response variable and $\boldsymbol{X}_{t-q}$ is the lagged vector of covariates, with dimension $D$. Here $(\varepsilon_t:t\in\mathbb{Z})$ is white noise, uncorrelated with lagged values of $Y$ and $\boldsymbol{X}$, and the $\alpha$'s and $\theta$'s are model parameters.
 
-As in @Koenker2006, we are interested in studying a class of quantile autoregressive models which coefficients can be dependent of $\tau$. Therefore, lets consider the following process, with ${U_t}$ as a sequence of i.i.d standard uniform random variables, $\alpha$ and $\theta$ as unknown functions $[0,1] \rightarrow \mathbb{R}$ to be estimated:
+As in @Koenker2006, we are interested in studying a class of quantile autoregressive models with coefficients that can be dependent on $\tau$. In this milieu, let us consider the following process, with $(U_t:t\in\mathbb{Z})$ being a sequence of i.i.d, standard uniform random variables, and the $\alpha$'s and $\theta$'s denoting unknown functions from $(0,1)$ to  $\mathbb{R}$ and $\mathbb{R}^D$ respectively, which we want to estimate:
 \begin{equation}
-Y_t = \alpha_0(U_t) + \alpha_1(U_t)Y_{t-1} +  \cdots + \alpha_p(U_t)Y_{t-p} + \theta_1(U_t)\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q(U_t)\mathbf{X}_{t-q}^\intercal
+Y_t = \alpha_0(U_t) + \alpha_1(U_t)Y_{t-1} +  \cdots + \alpha_p(U_t)Y_{t-p} + \boldsymbol{X}_{t-1}^\intercal\theta_1(U_t) + \cdots + \boldsymbol{X}_{t-q}^\intercal\theta_q(U_t)
 \label{eq:adltau}
 \end{equation}
-
-Then, given that for any monotone increasing function $g$ and a standard uniform random variable $U$ the following is true:
-
+Then, given that for any monotone increasing function $g$ and a standard uniform random variable $U$ one has
 $$
-Q_{g(U)}(\tau) = g(Q_U(\tau)) = g(\tau)
+Q_{g(U)}(\tau) = g(Q_U(\tau)) = g(\tau),\quad\tau\in(0,1),
 $$
-
-Assuming the right side of the equation \ref{eq:adltau} is monotone and increasing on $U_t$, we can say that the $\tau_{th}$ conditional quantile function of $Y_t$ is:
-
+assuming the right side of the equation \ref{eq:adltau} is monotone and increasing on $U_t$, we can say that the $\tau$th conditional quantile of $Y_t$ (given the ``past'') is, for all $t\in\mathbb{Z}$, given by
 \begin{equation}
-Q_{Y_t}(\tau|\Im_t) =  \alpha_0(\tau) + \alpha_1(\tau)Y_{t-1} + \cdots + \alpha_p(\tau)Y_{t-p} + \theta_1(\tau)\mathbf{X}_{t-1}^\intercal + \cdots + \theta_q(\tau)\mathbf{X}_{t-q}^\intercal
+Q_{Y_t}(\tau|\Im_{t-1}) =  \alpha_0(\tau) + \alpha_1(\tau)Y_{t-1} + \cdots + \alpha_p(\tau)Y_{t-p} + \boldsymbol{X}_{t-1}^\intercal\theta_1(\tau) + \cdots + \boldsymbol{X}_{t-q}^\intercal\theta_q(\tau),\quad \tau(0,1),
 \label{eq:qadl}
 \end{equation}
-where $\Im_t$ is the $\sigma$-field generated by ${Y_s, s\leq t}$. 
+where $\Im_t$ denotes the $\sigma$-field generated by $\{Y_s, s\leq t\}$. 
 
-Now let $\mathbf{Z_t}^\intercal$ be the covariates matrix with dimension $D$ and $\beta(\tau)$ a vector of the coefficients that describe the relationship between the covariates $\mathbf{Z}$ and the $\tau$-th quantile of the response variable, $\tau \in (0,1)$.
-
-Then, equation \ref{eq:qadl} can be expressed in the form of 
-\begin{equation}
-Q_{Y_t}(\tau|\Im_t) = \mathbf{Z_t}^\intercal\beta(\tau)
-\label{eq:qadlred}
-\end{equation}
-
-Given the QADL model described in \ref{eq:adl}, $\mathbf{Z_t}^\intercal$ and $\beta(\tau)$ are, respectively, 
+Now let, for $t\in\mathbb{Z}$ and $\tau\in(0,1)$,
 $$
-\mathbf{Z_t}^\intercal = (1, Y_{t-1}, \dots, Y_{t-p}, \mathbf{X}_{t-1}, \dots, \mathbf{X}_{t-p})
+\boldsymbol{Z}_{t}^\intercal := (1, Y_{t-1}, \dots, Y_{t-p}, \boldsymbol{X}_{t-1}, \dots, \boldsymbol{X}_{t-p})
 $$ 
 and
 $$
-\beta(\tau)^\intercal = (\alpha_0(\tau), \alpha_1(\tau), \dots, \alpha_p(\tau), \theta_1(\tau), \cdots , \theta_q(\tau))
+\beta(\tau)^\intercal := (\alpha_0(\tau), \alpha_1(\tau), \dots, \alpha_p(\tau), \theta_1(\tau), \cdots , \theta_q(\tau)).
 $$
-This representation, besides parsimonious, allows us to capture the nuances in the dependency structure of $\mathbf{Z}$ and $Y$. It is important to highlight that, as in the QAR model and other linear quantile regression applications, the QADL process is subject to quantile crossing (@Koenker2005), which is when the estimated quantile functions cross. This violates the principle that distribution functions and their associated inverse functions are monotone increasing. However, it is a valid local approximation over a region of interest.
+With this notation, equation \ref{eq:qadl} can succinctly be expressed in the form
+\begin{equation}
+Q_{Y_t}(\tau|\Im_t) = \boldsymbol{Z}_t^\intercal\beta(\tau),
+\label{eq:qadlred}
+\end{equation}
+a representation that, besides being parsimonious, allows one to capture the nuances in the dependency structure of $\boldsymbol{Z}$ and $Y$. It is important to highlight that, as in the QAR model and other linear quantile regression applications, the QADL process is subject to quantile crossing (@Koenker2005), which occurs when the estimated quantile functions cross. This violates the principle that distribution functions and their associated inverse functions are monotone increasing. However, it is a valid local approximation over a region of interest.
 
 ## Global coefficient estimation and variable selection
 
-In a standard quantile regression (QR) approach, we would estimate the $D$-dimensional vector $\beta(\tau)$ for each $\tau$ one at a time minimizing the sample average of the check function $\rho_\tau$:
+In the standard quantile regression (QR) approach, we estimate the $(p+1)\times (p\times D)$-dimensional vector $\beta(\tau)$ for each $\tau$ at a time, by minimizing the sample average
 $$
-\hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^N{\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b)}
+\widehat{\beta}(\tau) = \arg\min_b \sum_{t=1}^N{\rho_\tau(Y_t - \boldsymbol{Z}_t^\intercal b)}
 $$
-where $\rho_\tau(v) = v(\tau - \mathbb{I}_{[v<0]})$. Thus, to find the $\beta(\tau)$ function that minimizes the loss function for all $\tau$, we have the following minimization problem:
-
+where $\rho_\tau(v) = v(\tau - \mathbb{I}_{[v<0]})$, $v\in\mathbb{R}$. Thus, to find the function $\tau\mapsto\widehat{beta}(\tau)$ that minimizes the above loss function for all $\tau\in(0,1)$, we have the following minimization problem:
 \begin{equation}
-\hat{\beta}(\tau) = \arg\min_b \sum_{i=1}^N{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal b) d\tau}
+\widehat{\beta}(\cdot) = \arg\min_{b(\cdot)} \sum_{t=1}^N{\int_{0}^{1}\rho_\tau\big(Y_{t} - \boldsymbol{Z}_{t}^\intercal b(\tau)\big) \mathrm{d}\tau},
 \label{eq:betafunc}
 \end{equation}
+where the candidate minimizer functions $b(\cdot)$ range over an appropriate functional space.
 
-@Frumento2016 suggested a different approach: modeling the coefficient functions $\beta(\tau)$ as parametric functions of the order of the quantile. Consider $\varphi$ a vector of model parameters, then we can describe the quantile function as: 
-
+@Frumento2016 suggested a different approach: modeling the coefficient functions $\beta(\cdot)$ as parametric functions of the order of the quantile. Adapting the notation to a time series context, the authors consider a vector $\varphi$ of model parameters such that the conditional quantile function can be described through
 \begin{equation}
-Q(\tau|\mathbf{Z},\varphi) = \mathbf{Z}^\intercal\beta(\tau|\varphi)
+Q_{Y_t}(\tau|\Im_{t-1},\varphi) = \boldsymbol{Z}_t^\intercal\beta(\tau|\varphi),\quad t\in\mathbb{Z},\tau\in(0,1).
 \label{eq:qrcm}
 \end{equation}
-
-As stated in @Sottile2020, this method improves the efficiency and interpretation of the results, allowing us to maintain the quantile regression structure in \ref{eq:qadlred} but modeling it parametrically. 
+As highlighted in @Sottile2020, this approach yields estimators which improve the efficiency and interpretation of results, while allowing one to maintain the quantile regression structure in \ref{eq:qadlred} although modeling it parametrically.
 
 To model $\beta(\tau|\varphi)$, a good practice is to use a flexible model, such as a $k$-th degree polynomial function:
 
@@ -157,14 +148,14 @@ where $\varphi(\tau)$ is an $L \times M$ matrix. The resulting dimensions of $\b
 Hence, we can rewrite equation \ref{eq:qrcm} as:
 
 \begin{equation}
-Q(\tau|\mathbf{Z},\varphi) = \mathbf{Z}^\intercal\delta\varphi(\tau)
+Q(\tau|\boldsymbol{Z},\varphi) = \boldsymbol{Z}^\intercal\delta\varphi(\tau)
 \label{eq:qrcme}
 \end{equation}
 
 Since $\varphi(\tau)$ is known, our goal is to find $\delta$ that minimizes the loss function of the standard QR, so \ref{eq:betafunc} can be rewritten as:
 
 \begin{equation}
-\hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^N{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau}
+\widehat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{t=1}^N{\int_{0}^{1}\rho_\tau(Y_{t} - \boldsymbol{Z}_{t}^\intercal \delta\varphi(\tau))d\tau}
 \label{eq:betafunc2}
 \end{equation}
 
@@ -174,7 +165,7 @@ Since $\varphi(\tau)$ is known, our goal is to find $\delta$ that minimizes the 
 To perform a LASSO variable selection, equation \ref{eq:betafunc2} is modified to introduce an $l^1$-norm penalizing factor (@Sottile2020):
 
 \begin{equation}
-\hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\sum_{h=1}^{L}|\delta_{jh}|
+\widehat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{t=1}^n{\int_{0}^{1}\rho_\tau(Y_{t} - \boldsymbol{Z}_{t}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\sum_{h=1}^{L}|\delta_{jh}|
 \label{eq:betafuncpen}
 \end{equation}
 with $\lambda > 0$ as a tuning parameter. Thus, minimization is done subject to $\sum_{j=1}^{D}\sum_{h=1}^{L}|\delta_{jh}| \leq s$, where $s$ is a defined bound to the model parameters. 
@@ -182,14 +173,14 @@ with $\lambda > 0$ as a tuning parameter. Thus, minimization is done subject to 
 An alternative to overcome the inconsistencies that LASSO selection can face is the adaptive LASSO, often denoted as AdaLASSO, method proposed by @Zou2006, where different weights $\omega_j$ are applied to different coefficients. In this approach, variables with lower estimated coefficient, which indicate they are less relevant, will have a great weight $\omega_j$ resulting in a higher penalty. In this scenario, \ref{eq:betafuncpen} would have an extra parameter to represent the weight $\omega_j$:
 
 \begin{equation}
-\hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\sum_{h=1}^{L}\omega_j|\delta_{jh}|
+\widehat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{t=1}^n{\int_{0}^{1}\rho_\tau(Y_{t} - \boldsymbol{Z}_{t}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\sum_{h=1}^{L}\omega_j|\delta_{jh}|
 \label{eq:betafuncpenAda}
 \end{equation}
 
 The $\delta$ parameter being estimated is a $D \times L$ matrix, where D is the number of covariates in the model, so a covariate is represented in a row. In this scenario, it is relevant to use the idea from @Yuan2006 to penalize the variables of the $\delta$ matrix in a grouped manner. The adaptive group LASSO estimator applies an $l^2$-norm penalization:
 
 \begin{equation}
-\hat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{i=1}^n{\int_{0}^{1}\rho_\tau(Y_i - \mathbf{Z_i}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\omega_j\Vert\delta_{j}\Vert
+\widehat{\beta}(\tau|\varphi) = \arg\min_{\delta} \sum_{t=1}^n{\int_{0}^{1}\rho_\tau(Y_{t} - \boldsymbol{Z}_{t}^\intercal \delta\varphi(\tau))d\tau} + \lambda \sum_{j=1}^{D}\omega_j\Vert\delta_{j}\Vert
 \label{eq:betafuncpenAdaGroup}
 \end{equation}
 where 
@@ -198,11 +189,11 @@ $$
 $$
 and 
 $$
-\omega_j = \left(|\hat{\delta}_{j}| e^{-\alpha}\right)^{-p}
+\omega_j = \left(|\widehat{\delta}_{j}| e^{-\alpha}\right)^{-p}
 $$
-being $\hat{\delta}$ the $\delta$ matrix estimated as described in \ref{eq:betafunc2}.
+being $\widehat{\delta}$ the $\delta$ matrix estimated as described in \ref{eq:betafunc2}.
 
-In a time series context, we are estimating the coefficients for each lagged variable, thus, @Park2013 consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\hat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGroup}, we will have that $\omega_j = \left(|\hat{\delta}_{j}| e^{-\alpha t}\right)^{-p}$.
+In a time series context, we are estimating the coefficients for each lagged variable, thus, @Park2013 consider applying higher weights for higher lags, as it is usual that more recent variables are more relevant. @Konzen2016 apply this idea to propose the WLadaLASSO, that has its original form described as $\omega_j = \left(|\widehat{\beta_j}|e^{-\alpha t}\right)^{-p}$, with $p>0$, $\alpha \geq 0$ and $t$ representing the lag order. For \ref{eq:betafuncpenAdaGroup}, we will have that $\omega_j = \left(|\widehat{\delta}_{j}| e^{-\alpha t}\right)^{-p}$.
 
 
 # Methodology \label{methodology}
@@ -222,7 +213,7 @@ $v_{11} = v_{10} +v_{01} - v_{00}$
 $\tau\rightarrow v_{11}(\tau)$ is non-decreasing.
 \end{longlist}
 
-Now, if $\mathbf{X}$ is a random vector in ${\R}^3$ and $U \sim U(0,1)$ is a scalar random variable independent of $\mathbf{X}$, then we can define the random variable $Y$ as
+Now, if $\boldsymbol{X}$ is a random vector in ${\R}^3$ and $U \sim U(0,1)$ is a scalar random variable independent of $\boldsymbol{X}$, then we can define the random variable $Y$ as
 $$
 Y = v_{00}(U) + (v_{10}(U)-v_{00}(U))X_2 + (v_{01}(U) - v_{00}(U))X_3 
 $$
