@@ -164,3 +164,32 @@ phi_generator = function(L, taus){
   return(phi)
 }
 
+tau.grid_generator = function(L, M, delta = .1){
+  Lgen = L-1
+  Mgen = M-1 # damn you, R! should allow indexing matrices from 0
+  f = function(x) .5 + (1-2*delta)*x/2
+  tau.grid = f(cos(pi*0:Lgen/Lgen))
+}
+
+phi_generator2 = function(L, tau.grid, delta = .1){
+  
+  f.inv = function(t) 1/(2*delta-1) + 2*t/(1-2*delta)
+  
+  phi.fun = function(tau, m){
+    acos_r = ifelse(tau == delta, acos(-1), ifelse(tau == (1-delta), acos(1), acos(f.inv(tau))))
+    return(cos(m*acos_r))
+  }
+  
+  phi.matrix = matrix(0,L,L)
+  
+  for (ell in 0:(L-1)){
+    phi.matrix[ell+1,] = phi.fun(tau.grid,ell)
+  }
+  
+  L = nrow(phi.matrix) # "true" L
+  M = ncol(phi.matrix) # "true" M
+  
+  return (phi.matrix)
+}
+
+

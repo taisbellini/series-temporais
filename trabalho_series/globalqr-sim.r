@@ -72,7 +72,10 @@ ts.plot(Y5_X1.Y)
 
 #### Test all scenarios with a 10 lagged DB ####
 
-tau.grid = seq(from=.05,to=.95, by=.05)
+L = 10
+M = 10
+tau.grid = tau.grid_generator(L, M)
+phi = phi_generator2(L,tau.grid)
 
 #### Test Yt-1 Xt-1 ####
 Y1_X1.Yvec = Y1_X1.Y[11:Y1_X1.N]
